@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Analysis Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; padding: 24px 32px; border-radius: 12px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .header .meta { font-size: 0.9rem; opacity: 0.9; }
+        .header .meta span { margin-left: 16px; }
+        .btn-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-link {
+            display: inline-block; padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
+            text-decoration: none; transition: background 0.2s; cursor: pointer; border: none;
+        }
+        .btn-white { background: rgba(255,255,255,0.2); color: #fff; }
+        .btn-white:hover { background: rgba(255,255,255,0.35); }
+        .btn-green { background: #43a047; color: #fff; }
+        .btn-green:hover { background: #388e3c; }
+        .btn-orange { background: #f57c00; color: #fff; }
+        .btn-orange:hover { background: #e65100; }
+
+        .params-bar {
+            background: #fff; padding: 14px 24px; border-radius: 10px; margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 24px; font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .params-bar strong { color: #667eea; }
+        .holidays-bar {
+            background: #fff8e1; border: 1px solid #ffe082; padding: 14px 24px; border-radius: 10px;
+            margin-bottom: 20px; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .holidays-bar strong { color: #f57f17; }
+        .holidays-bar .holiday-list { margin-top: 6px; color: #555; }
+
+        .stage-banner {
+            padding: 14px 24px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .stage-initial { background: #e3f2fd; border: 1px solid #90caf9; color: #1565c0; }
+        .stage-final { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+
+        .dept-section { margin-bottom: 28px; }
+        .dept-header {
+            background: #fff; padding: 16px 24px; border-radius: 10px 10px 0 0;
+            border-bottom: 3px solid #667eea; display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap; gap: 8px;
+        }
+        .dept-header h2 { font-size: 1.15rem; color: #333; }
+        .dept-header .dept-count { color: #888; font-size: 0.85rem; font-weight: 400; }
+        .dept-actions { display: flex; gap: 8px; }
+        .dept-actions a {
+            padding: 5px 14px; border-radius: 5px; font-size: 0.8rem; text-decoration: none;
+            background: #667eea; color: #fff; transition: background 0.2s;
+        }
+        .dept-actions a:hover { background: #5a6fd6; }
+
+        .consolidated-table {
+            width: 100%; border-collapse: collapse; font-size: 0.82rem; background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-radius: 0 0 10px 10px; overflow: hidden;
+        }
+        .consolidated-table th {
+            background: #f5f5f5; color: #555; padding: 10px 8px; text-align: center;
+            font-weight: 600; font-size: 0.78rem; white-space: nowrap; border-bottom: 1px solid #e0e0e0;
+        }
+        .consolidated-table td {
+            padding: 8px; text-align: center; border-bottom: 1px solid #f0f0f0;
+        }
+        .consolidated-table tr:hover td { background: #f8f8ff; }
+        .consolidated-table td:nth-child(1),
+        .consolidated-table td:nth-child(2),
+        .consolidated-table td:nth-child(3),
+        .consolidated-table td:nth-child(4) { text-align: left; }
+        .text-danger { color: #c62828; font-weight: 700; }
+        .text-success { color: #2e7d32; font-weight: 700; }
+        .text-warn { color: #e65100; font-weight: 600; }
+
+        .detail-toggle {
+            font-size: 0.75rem; color: #667eea; cursor: pointer; text-decoration: underline;
+            display: inline-block; margin-left: 4px;
+        }
+        .emp-details { display: none; }
+        .emp-details.open { display: table-row; }
+        .emp-details td { padding: 12px 16px; background: #fafbff; text-align: left; }
+        .detail-inner { font-size: 0.8rem; color: #555; }
+        .detail-inner table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        .detail-inner table th { background: #eef; padding: 4px 8px; font-size: 0.78rem; text-align: left; }
+        .detail-inner table td { padding: 4px 8px; border-bottom: 1px solid #eee; text-align: left; }
+        .detail-inner h4 { margin: 8px 0 4px; color: #667eea; font-size: 0.82rem; }
+
+        .print-btn {
+            position: fixed; bottom: 24px; right: 24px; padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.4); z-index: 100;
+        }
+        .permitted-tag {
+            display: inline-block; background: #c8e6c9; color: #2e7d32; padding: 1px 6px;
+            border-radius: 3px; font-size: 0.7rem; margin-left: 4px;
+        }
+        @media print {
+            body { background: #fff; padding: 10px; }
+            .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .btn-bar, .print-btn, .dept-actions, .detail-toggle { display: none !important; }
+            .emp-details { display: table-row !important; }
+            .dept-section { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Attendance Analysis Report</h1>
+            <div class="meta">
+                Period: <strong>{{ start_date.strftime('%d-%b-%Y') }}</strong> to <strong>{{ end_date.strftime('%d-%b-%Y') }}</strong>
+                <span>Employees: <strong>{{ results|length }}</strong></span>
+                <span>Departments: <strong>{{ dept_groups|length }}</strong></span>
+            </div>
+        </div>
+        <div class="btn-bar">
+            {% if stage == 'initial' %}
+            <a href="/hod-review/{{ session_id }}" class="btn-link btn-orange">HoD Review &amp; Mark Permitted Days</a>
+            {% endif %}
+            <a href="/" class="btn-link btn-white">Upload Another File</a>
+            <button onclick="window.print()" class="btn-link btn-white">Print</button>
+        </div>
+    </div>
+
+    {% if stage == 'initial' %}
+    <div class="stage-banner stage-initial">
+        Stage 1: Initial Analysis &mdash; Review anomalies below. Click "HoD Review" to mark permitted days before final leave deduction.
+        You can also print individual department reports to send to each HoD.
+    </div>
+    {% elif stage == 'final' %}
+    <div class="stage-banner stage-final">
+        Stage 2: Final Report &mdash; HoD-permitted days have been excluded. Leave deduction calculated on remaining anomalies only.
+    </div>
+    {% endif %}
+
+    <div class="params-bar">
+        <div>Late Arrival After: <strong>{{ params.late_time }}</strong></div>
+        <div>Early Departure Before: <strong>{{ params.early_time }}</strong></div>
+        <div>Min Office Hours: <strong>{{ params.min_hours }} hrs</strong></div>
+        <div>Allowed Anomalies: <strong>{{ params.allowed_anomalies }} per month</strong></div>
+    </div>
+
+    {% if holidays %}
+    <div class="holidays-bar">
+        <strong>Public Holidays (Delhi Central Govt):</strong>
+        <div class="holiday-list">
+            {% for h in holidays %}
+                {{ h.strftime('%d-%b-%Y') }}{% if holiday_names.get(h) %} ({{ holiday_names[h] }}){% endif %}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Department-wise sections -->
+    {% for dept_name, dept_results in dept_groups.items() %}
+    <div class="dept-section">
+        <div class="dept-header">
+            <h2>{{ dept_name }} <span class="dept-count">({{ dept_results|length }} employees)</span></h2>
+            <div class="dept-actions">
+                {% if stage == 'initial' %}
+                <a href="/dept-report/{{ session_id }}/{{ dept_name }}" target="_blank">Print Dept Report</a>
+                <a href="/hod-review/{{ session_id }}?dept={{ dept_name }}">HoD Review</a>
+                {% endif %}
+            </div>
+        </div>
+        <table class="consolidated-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Employee Name</th>
+                    <th>Designation</th>
+                    <th>W.Days</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>On Holiday</th>
+                    <th>Late</th>
+                    <th>Early Dep.</th>
+                    <th>Short Hrs</th>
+                    <th>Miss Dep.</th>
+                    <th>Miss Arr.</th>
+                    <th>Anomalies</th>
+                    {% if stage == 'final' %}<th>Permitted</th>{% endif %}
+                    <th>Effective</th>
+                    <th>Leave Ded.</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in dept_results %}
+                <tr>
+                    <td>{{ r.emp_code }}</td>
+                    <td>{{ r.emp_name }}</td>
+                    <td>{{ r.designation }}</td>
+                    <td>{{ r.working_days }}</td>
+                    <td>{{ r.present }}</td>
+                    <td>{{ r.absent }}</td>
+                    <td>{{ r.present_on_holidays }}</td>
+                    <td class="{% if r.late_arrival_count > 0 %}text-warn{% endif %}">{{ r.late_arrival_count }}</td>
+                    <td class="{% if r.early_departure_count > 0 %}text-warn{% endif %}">{{ r.early_departure_count }}</td>
+                    <td class="{% if r.short_hours_count > 0 %}text-warn{% endif %}">{{ r.short_hours_count }}</td>
+                    <td>{{ r.missing_departure_count }}</td>
+                    <td>{{ r.missing_arrival_count }}</td>
+                    <td>{{ r.total_anomaly_dates_raw }}</td>
+                    {% if stage == 'final' %}<td class="text-success">{{ r.permitted_count }}</td>{% endif %}
+                    <td class="{% if r.effective_anomaly_count > r.allowed_anomalies %}text-danger{% endif %}">
+                        {{ r.effective_anomaly_count }}
+                    </td>
+                    <td class="{% if r.leave_deduction > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ r.leave_deduction }}
+                    </td>
+                    <td>
+                        {% if r.all_anomaly_dates or r.missing_departure or r.missing_arrival %}
+                        <span class="detail-toggle" onclick="toggleDetails('details_{{ r.emp_code }}')">details</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if r.anomaly_details %}
+                <tr class="emp-details" id="details_{{ r.emp_code }}">
+                    <td colspan="{% if stage == 'final' %}17{% else %}16{% endif %}">
+                        <div class="detail-inner">
+                            <h4>Anomaly Details ({{ r.total_anomaly_dates_raw }}{% if r.permitted_count > 0 %}, {{ r.permitted_count }} permitted{% endif %})</h4>
+                            <table>
+                            <tr><th>Date</th><th>Day</th><th>Arrival</th><th>Departure</th><th>Hours</th><th>Anomaly Type(s)</th>{% if stage == 'final' %}<th>Status</th>{% endif %}</tr>
+                            {% for d in r.anomaly_details %}
+                            <tr>
+                                <td>{{ d.date.strftime('%d-%b') }}</td>
+                                <td>{{ d.date.strftime('%a') }}</td>
+                                <td style="{% if d.arrival_status == 'late' %}color:#c62828;font-weight:700{% elif d.arrival_status == 'missing' %}background:#ffebee;color:#c62828;font-weight:700{% else %}color:#2e7d32{% endif %}">
+                                    {% if d.arrival_status == 'missing' %}MISSING{% elif d.arrival %}{{ d.arrival }}{% else %}-{% endif %}
+                                </td>
+                                <td style="{% if d.departure_status == 'early' %}color:#c62828;font-weight:700{% elif d.departure_status == 'missing' %}background:#ffebee;color:#c62828;font-weight:700{% else %}color:#2e7d32{% endif %}">
+                                    {% if d.departure_status == 'missing' %}MISSING{% elif d.departure %}{{ d.departure }}{% else %}-{% endif %}
+                                </td>
+                                <td style="{% if d.hours_status == 'short' %}color:#c62828;font-weight:700{% elif d.hours_status == 'missing' %}background:#ffebee;color:#c62828{% else %}color:#2e7d32{% endif %}">
+                                    {% if d.hours %}{{ d.hours }}{% else %}-{% endif %}
+                                </td>
+                                <td style="text-align:left;font-size:0.75rem;">{{ d.types|join(', ') }}</td>
+                                {% if stage == 'final' %}
+                                <td>{% if d.date in r.permitted_dates %}<span class="permitted-tag">Permitted</span>{% else %}Counted{% endif %}</td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+    <button class="print-btn" onclick="window.print()">Print Report</button>
+
+    <script>
+        function toggleDetails(id) {
+            document.getElementById(id).classList.toggle('open');
+        }
+    </script>
+</body>
+</html>

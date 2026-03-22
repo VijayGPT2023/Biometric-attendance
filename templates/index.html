@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Attendance Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 650px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        label .hint {
+            font-weight: 400;
+            color: #999;
+            font-size: 0.8rem;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        input[type="file"]:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+        .params-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        input[type="time"], input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        input[type="time"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active { transform: translateY(0); }
+        .flash {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .info-box {
+            background: #e8f4fd;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+            color: #004085;
+            line-height: 1.5;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 24px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Biometric Attendance Analyzer</h1>
+        <p class="subtitle">Upload monthly biometric data and generate detailed attendance reports</p>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="flash">{{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="info-box">
+            <strong>Two-Stage Workflow:</strong><br>
+            <strong>Stage 1:</strong> Upload biometric file &rarr; Get department-wise anomaly report &rarr; Send to each HoD for review.<br>
+            <strong>Stage 2:</strong> HoD marks permitted days (duty/meetings) &rarr; System recalculates and deducts leave only for unexcused anomalies.<br><br>
+            Supports <strong>.xls / .xlsx</strong> (Monthly Performance Report format).
+            Accounts for weekends (Sat/Sun) and Delhi Central Government public holidays.
+        </div>
+
+        <form action="/analyze" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Attendance File</label>
+                <input type="file" name="file" accept=".xls,.xlsx" required>
+            </div>
+
+            <hr class="divider">
+
+            <div class="params-grid">
+                <div class="form-group">
+                    <label>Late Arrival After <span class="hint">(HH:MM)</span></label>
+                    <input type="time" name="late_time" value="10:00" required>
+                </div>
+                <div class="form-group">
+                    <label>Early Departure Before <span class="hint">(HH:MM)</span></label>
+                    <input type="time" name="early_time" value="17:00" required>
+                </div>
+                <div class="form-group">
+                    <label>Min. Office Hours <span class="hint">(per day)</span></label>
+                    <input type="number" name="min_hours" value="8" min="1" max="12" step="0.5" required>
+                </div>
+                <div class="form-group">
+                    <label>Allowed Anomalies <span class="hint">(per month, free)</span></label>
+                    <input type="number" name="allowed_anomalies" value="2" min="0" max="10" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">Generate Report</button>
+        </form>
+    </div>
+</body>
+</html>

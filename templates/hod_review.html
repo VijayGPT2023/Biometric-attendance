@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HoD Review - Mark Permitted Days</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .header {
+            background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+            color: #fff; padding: 24px 32px; border-radius: 12px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 { font-size: 1.4rem; }
+        .header .meta { font-size: 0.9rem; opacity: 0.9; }
+        .btn-link {
+            display: inline-block; padding: 8px 18px; border-radius: 6px; font-size: 0.85rem;
+            text-decoration: none; transition: background 0.2s; cursor: pointer; border: none;
+        }
+        .btn-white { background: rgba(255,255,255,0.2); color: #fff; }
+        .btn-white:hover { background: rgba(255,255,255,0.35); }
+
+        .info-box {
+            background: #fff3e0; border: 1px solid #ffcc80; padding: 16px 24px; border-radius: 10px;
+            margin-bottom: 20px; font-size: 0.88rem; color: #e65100; line-height: 1.6;
+        }
+        .params-bar {
+            background: #fff; padding: 14px 24px; border-radius: 10px; margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 24px; font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .params-bar strong { color: #667eea; }
+
+        .dept-filter-bar {
+            background: #fff; padding: 12px 24px; border-radius: 10px; margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .dept-filter-bar label { font-weight: 600; margin-right: 8px; font-size: 0.85rem; }
+        .dept-chip {
+            padding: 5px 14px; border-radius: 20px; font-size: 0.82rem; text-decoration: none;
+            border: 1px solid #ddd; color: #555; transition: all 0.2s;
+        }
+        .dept-chip:hover { border-color: #f57c00; color: #f57c00; }
+        .dept-chip.active { background: #f57c00; color: #fff; border-color: #f57c00; }
+
+        .dept-section { margin-bottom: 28px; }
+        .dept-header {
+            background: #fff; padding: 14px 24px; border-radius: 10px 10px 0 0;
+            border-bottom: 3px solid #f57c00;
+        }
+        .dept-header h2 { font-size: 1.1rem; color: #333; }
+        .dept-header .dept-count { color: #888; font-size: 0.85rem; font-weight: 400; }
+
+        .emp-review-card {
+            background: #fff; padding: 16px 24px; margin-bottom: 1px;
+            border-left: 4px solid transparent;
+        }
+        .emp-review-card.has-anomalies { border-left-color: #f57c00; }
+        .emp-review-card:last-child { border-radius: 0 0 10px 10px; }
+        .emp-info {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+            margin-bottom: 8px;
+        }
+        .emp-info h3 { font-size: 0.95rem; color: #333; }
+        .emp-info .emp-meta { font-size: 0.8rem; color: #888; }
+        .emp-info .badge {
+            padding: 3px 10px; border-radius: 10px; font-size: 0.78rem; font-weight: 600;
+        }
+        .badge-warn { background: #fff3e0; color: #e65100; }
+        .badge-ok { background: #e8f5e9; color: #2e7d32; }
+
+        .anomaly-table {
+            width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 8px;
+        }
+        .anomaly-table th {
+            background: #fafafa; padding: 6px 10px; text-align: left; font-weight: 600;
+            color: #555; border-bottom: 1px solid #eee; font-size: 0.78rem;
+        }
+        .anomaly-table td { padding: 6px 10px; border-bottom: 1px solid #f5f5f5; }
+        .anomaly-table tr:hover td { background: #fff8f0; }
+        .anomaly-table input[type="checkbox"] {
+            width: 16px; height: 16px; cursor: pointer; accent-color: #43a047;
+        }
+        .no-anomaly { color: #888; font-size: 0.82rem; font-style: italic; padding: 4px 0; }
+
+        .submit-bar {
+            position: sticky; bottom: 0; background: #fff; padding: 16px 24px; border-radius: 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1); margin-top: 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+            z-index: 100;
+        }
+        .submit-bar .info { font-size: 0.85rem; color: #555; }
+        .submit-btn {
+            padding: 12px 32px; background: #43a047; color: #fff; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .submit-btn:hover { background: #388e3c; }
+
+        .select-actions { font-size: 0.78rem; margin-bottom: 4px; }
+        .select-actions a {
+            color: #667eea; cursor: pointer; text-decoration: underline; margin-right: 12px;
+        }
+    </style>
+</head>
+<body>
+<form action="/hod-submit/{{ session_id }}" method="post">
+    <div class="header">
+        <div>
+            <h1>HoD Review - Mark Permitted Anomalies</h1>
+            <div class="meta">
+                Period: <strong>{{ start_date.strftime('%d-%b-%Y') }}</strong> to <strong>{{ end_date.strftime('%d-%b-%Y') }}</strong>
+                <span>Employees with anomalies: <strong>{{ results|selectattr('total_anomaly_dates_raw', 'gt', 0)|list|length }}</strong></span>
+            </div>
+        </div>
+        <a href="/" class="btn-link btn-white">Back to Upload</a>
+    </div>
+
+    <div class="info-box">
+        <strong>Instructions for HoD:</strong> Review each employee's anomaly dates below.
+        <strong>Check the box</strong> for any date where the anomaly was <strong>permitted</strong>
+        (e.g., employee was on official duty, meeting, approved late arrival, etc.).<br>
+        Unchecked dates will be counted as anomalies. After the {{ params.allowed_anomalies }} free allowed anomalies,
+        each additional anomaly = 1 leave deducted.<br>
+        Click <strong>"Submit HoD Review &amp; Generate Final Report"</strong> when done.
+    </div>
+
+    <div class="params-bar">
+        <div>Late After: <strong>{{ params.late_time }}</strong></div>
+        <div>Early Before: <strong>{{ params.early_time }}</strong></div>
+        <div>Min Hours: <strong>{{ params.min_hours }} hrs</strong></div>
+        <div>Allowed Free: <strong>{{ params.allowed_anomalies }}</strong></div>
+    </div>
+
+    <!-- Department filter chips -->
+    <div class="dept-filter-bar">
+        <label>Filter Department:</label>
+        <a href="/hod-review/{{ session_id }}" class="dept-chip {% if not dept_filter %}active{% endif %}">All</a>
+        {% for dept_name in dept_groups.keys() %}
+        <a href="/hod-review/{{ session_id }}?dept={{ dept_name }}" class="dept-chip {% if dept_filter == dept_name %}active{% endif %}">{{ dept_name }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Department-wise review -->
+    {% for dept_name, dept_results in dept_groups.items() %}
+    {% if not dept_filter or dept_filter == dept_name %}
+    <div class="dept-section">
+        <div class="dept-header">
+            <h2>{{ dept_name }} <span class="dept-count">({{ dept_results|length }} employees)</span></h2>
+        </div>
+        {% for r in dept_results %}
+        <div class="emp-review-card {% if r.total_anomaly_dates_raw > 0 %}has-anomalies{% endif %}">
+            <div class="emp-info">
+                <div>
+                    <h3>{{ r.emp_name }} <span class="emp-meta">({{ r.emp_code }}) &mdash; {{ r.designation }}</span></h3>
+                    <span class="emp-meta">
+                        Present: {{ r.present }} | Absent: {{ r.absent }} | Late: {{ r.late_arrival_count }} |
+                        Early: {{ r.early_departure_count }} | Short: {{ r.short_hours_count }} |
+                        Miss Dep: {{ r.missing_departure_count }} | Miss Arr: {{ r.missing_arrival_count }}
+                    </span>
+                </div>
+                <div>
+                    {% if r.total_anomaly_dates_raw > r.allowed_anomalies %}
+                    <span class="badge badge-warn">{{ r.total_anomaly_dates_raw }} anomalies &rarr; {{ r.leave_deduction }} leave</span>
+                    {% elif r.total_anomaly_dates_raw > 0 %}
+                    <span class="badge badge-ok">{{ r.total_anomaly_dates_raw }} anomalies (within limit)</span>
+                    {% else %}
+                    <span class="badge badge-ok">No anomalies</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if r.all_anomaly_dates %}
+            <div class="select-actions" data-emp="{{ r.emp_code }}">
+                <a onclick="selectAll('{{ r.emp_code }}')">Select All</a>
+                <a onclick="deselectAll('{{ r.emp_code }}')">Deselect All</a>
+            </div>
+            <table class="anomaly-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">Permit</th>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Anomaly Types</th>
+                        <th>Arrival</th>
+                        <th>Departure</th>
+                        <th>Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ad in r.all_anomaly_dates %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="permit_{{ r.emp_code }}_{{ ad.isoformat() }}"
+                                   value="1" class="permit-cb permit-{{ r.emp_code }}">
+                        </td>
+                        <td>{{ ad.strftime('%d-%b-%Y') }}</td>
+                        <td>{{ ad.strftime('%A') }}</td>
+                        <td>
+                            {% set types = [] %}
+                            {% for item in r.late_arrivals if item.date == ad %}{% if types.append('Late Arrival') %}{% endif %}{% endfor %}
+                            {% for item in r.early_departures if item.date == ad %}{% if types.append('Early Departure') %}{% endif %}{% endfor %}
+                            {% for item in r.short_hours if item.date == ad %}{% if types.append('Short Hours') %}{% endif %}{% endfor %}
+                            {{ types|join(', ') }}
+                        </td>
+                        <td>
+                            {% for item in r.late_arrivals if item.date == ad %}{{ item.time }}{% endfor %}
+                            {% if not r.late_arrivals|selectattr('date', 'equalto', ad)|list %}-{% endif %}
+                        </td>
+                        <td>
+                            {% for item in r.early_departures if item.date == ad %}{{ item.time }}{% endfor %}
+                            {% if not r.early_departures|selectattr('date', 'equalto', ad)|list %}-{% endif %}
+                        </td>
+                        <td>
+                            {% for item in r.short_hours if item.date == ad %}{{ item.hours }}{% endfor %}
+                            {% if not r.short_hours|selectattr('date', 'equalto', ad)|list %}-{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-anomaly">No anomalies found for this employee.</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <div class="submit-bar">
+        <div class="info">
+            Check the dates that are permitted by HoD. Remaining anomalies (after {{ params.allowed_anomalies }} free) will result in leave deduction.
+        </div>
+        <button type="submit" class="submit-btn">Submit HoD Review &amp; Generate Final Report</button>
+    </div>
+</form>
+
+<script>
+    function selectAll(empCode) {
+        document.querySelectorAll('.permit-' + empCode).forEach(cb => cb.checked = true);
+    }
+    function deselectAll(empCode) {
+        document.querySelectorAll('.permit-' + empCode).forEach(cb => cb.checked = false);
+    }
+</script>
+</body>
+</html>
