@@ -139,10 +139,25 @@ def parse_biometric_xls(filepath):
         col1 = str(row.iloc[1]).strip() if not pd.isna(row.iloc[1]) else ''
 
         # Detect Department / Designation row (appears just before EmpCode row)
-        if col1.startswith('Department'):
-            current_dept = col1.split(':', 1)[1].strip() if ':' in col1 else ''
-            col20 = str(row.iloc[20]).strip() if not pd.isna(row.iloc[20]) else ''
-            current_desig = col20.split(':', 1)[1].strip() if ':' in col20 else ''
+        # Old format: "Department  : AB Group" (col1) + "Desig : Dy. Director" (col20)
+        # New format: "Dept:-AB" (col1) + "Desig : MTS" (col15)
+        if col1.startswith('Department') or (col1.startswith('Dept:') and col1 != 'Dept.Time' and 'Dept.Time' not in col1):
+            # Extract department name
+            if ':-' in col1:
+                current_dept = col1.split(':-', 1)[1].strip()
+            elif ':' in col1:
+                current_dept = col1.split(':', 1)[1].strip()
+            else:
+                current_dept = col1
+
+            # Extract designation - check col20 first (old format), then col15 (new format)
+            current_desig = ''
+            for desig_col in [20, 15]:
+                if desig_col < len(row):
+                    desig_val = str(row.iloc[desig_col]).strip() if not pd.isna(row.iloc[desig_col]) else ''
+                    if desig_val.startswith('Desig'):
+                        current_desig = desig_val.split(':', 1)[1].strip() if ':' in desig_val else ''
+                        break
             row_idx += 1
             continue
 
@@ -204,13 +219,19 @@ def parse_biometric_xls(filepath):
                 if d < start_date or d > end_date:
                     continue
 
-                status = str(status_row.iloc[col_idx]).strip() if not pd.isna(status_row.iloc[col_idx]) else ''
+                raw_status = str(status_row.iloc[col_idx]).strip() if not pd.isna(status_row.iloc[col_idx]) else ''
+                # Normalize status: P-LT (present-late) and POW (present on weekend/off) → P
+                status = raw_status
+                if raw_status in ('P-LT', 'POW'):
+                    status = 'P'
+
                 arrival = str(arrived_row.iloc[col_idx]).strip() if not pd.isna(arrived_row.iloc[col_idx]) else '00:00'
                 departure = str(dept_row.iloc[col_idx]).strip() if not pd.isna(dept_row.iloc[col_idx]) else '00:00'
                 working_hrs = str(working_row.iloc[col_idx]).strip() if not pd.isna(working_row.iloc[col_idx]) else '00:00'
 
                 daily_data[d] = {
                     'status': status,
+                    'raw_status': raw_status,
                     'arrival': arrival,
                     'departure': departure,
                     'working_hrs': working_hrs,
@@ -238,6 +259,47 @@ def parse_biometric_xls(filepath):
             row_idx += 1
 
     return employees, start_date, end_date
+
+
+def merge_multi_month(file_results):
+    """Merge employees from multiple monthly files into a single dataset.
+
+    file_results: list of (employees, start_date, end_date) from parse_biometric_xls
+    Returns: (merged_employees, overall_start_date, overall_end_date)
+    """
+    if len(file_results) == 1:
+        return file_results[0]
+
+    # Overall date range
+    overall_start = min(r[1] for r in file_results)
+    overall_end = max(r[2] for r in file_results)
+
+    # Merge employees by emp_code
+    emp_map = {}  # emp_code -> merged employee dict
+    for employees, _, _ in file_results:
+        for emp in employees:
+            code = emp['emp_code']
+            if code not in emp_map:
+                emp_map[code] = {
+                    'emp_code': code,
+                    'emp_name': emp['emp_name'],
+                    'department': emp['department'],
+                    'designation': emp['designation'],
+                    'daily_data': {},
+                }
+            else:
+                # Update name/dept/desig if current is more complete
+                if emp['department'] and not emp_map[code]['department']:
+                    emp_map[code]['department'] = emp['department']
+                if emp['designation'] and not emp_map[code]['designation']:
+                    emp_map[code]['designation'] = emp['designation']
+                if len(emp['emp_name']) > len(emp_map[code]['emp_name']):
+                    emp_map[code]['emp_name'] = emp['emp_name']
+
+            # Merge daily data (later file overwrites if same date exists)
+            emp_map[code]['daily_data'].update(emp['daily_data'])
+
+    return list(emp_map.values()), overall_start, overall_end
 
 
 # ---------- Employee analysis ----------
@@ -524,22 +586,14 @@ def index():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    if 'file' not in request.files:
+    # Support multiple file uploads
+    files = request.files.getlist('files')
+    if not files or all(f.filename == '' for f in files):
+        # Fallback: try single file field name
+        files = request.files.getlist('file')
+    if not files or all(f.filename == '' for f in files):
         flash('No file uploaded')
         return redirect(url_for('index'))
-
-    file = request.files['file']
-    if file.filename == '':
-        flash('No file selected')
-        return redirect(url_for('index'))
-
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ('.xls', '.xlsx'):
-        flash('Please upload an .xls or .xlsx file')
-        return redirect(url_for('index'))
-
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(filepath)
 
     try:
         late_h, late_m = map(int, request.form.get('late_time', '10:00').split(':'))
@@ -550,15 +604,39 @@ def analyze():
         flash('Invalid parameter values')
         return redirect(url_for('index'))
 
-    try:
-        employees, start_date, end_date = parse_biometric_xls(filepath)
-    except Exception as e:
-        flash(f'Error parsing file: {str(e)}')
+    # Parse each uploaded file
+    file_results = []
+    saved_paths = []
+    for file in files:
+        if file.filename == '':
+            continue
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in ('.xls', '.xlsx'):
+            flash(f'Skipped {file.filename} — not an .xls/.xlsx file')
+            continue
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+        saved_paths.append(filepath)
+        try:
+            emps, sd, ed = parse_biometric_xls(filepath)
+            if emps and sd and ed:
+                file_results.append((emps, sd, ed))
+        except Exception as e:
+            flash(f'Error parsing {file.filename}: {str(e)}')
+
+    # Clean up uploaded files
+    for fp in saved_paths:
+        try:
+            os.remove(fp)
+        except OSError:
+            pass
+
+    if not file_results:
+        flash('No valid employee data found in the uploaded file(s)')
         return redirect(url_for('index'))
 
-    if not employees:
-        flash('No employee data found in the file')
-        return redirect(url_for('index'))
+    # Merge multi-month data
+    employees, start_date, end_date = merge_multi_month(file_results)
 
     params = {
         'late_time': f"{late_h:02d}:{late_m:02d}",
@@ -578,7 +656,6 @@ def analyze():
     # Save results to disk for Stage 2
     session_id = str(uuid.uuid4())
     serialized = serialize_results(results, start_date, end_date, params)
-    # Also save raw employee data for re-analysis
     raw_employees = []
     for emp in employees:
         raw_emp = dict(emp)
@@ -590,15 +667,8 @@ def analyze():
     with open(data_path, 'w') as f:
         json.dump(serialized, f)
 
-    try:
-        os.remove(filepath)
-    except OSError:
-        pass
-
     holidays = get_holidays_for_range(start_date, end_date)
     holiday_names = get_holiday_names(start_date, end_date)
-
-    # Group results by department
     dept_groups = group_by_department(results)
 
     return render_template('report.html',

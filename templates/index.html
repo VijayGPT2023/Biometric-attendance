@@ -143,14 +143,16 @@
             <strong>Two-Stage Workflow:</strong><br>
             <strong>Stage 1:</strong> Upload biometric file &rarr; Get department-wise anomaly report &rarr; Send to each HoD for review.<br>
             <strong>Stage 2:</strong> HoD marks permitted days (duty/meetings) &rarr; System recalculates and deducts leave only for unexcused anomalies.<br><br>
-            Supports <strong>.xls / .xlsx</strong> (Monthly Performance Report format).
+            Supports <strong>.xls / .xlsx</strong> (Monthly Performance Report format).<br>
+            Upload <strong>one or multiple months</strong> at once. Multi-month files are merged by Employee Code.<br>
             Accounts for weekends (Sat/Sun) and Delhi Central Government public holidays.
         </div>
 
         <form action="/analyze" method="post" enctype="multipart/form-data">
             <div class="form-group">
-                <label>Attendance File</label>
-                <input type="file" name="file" accept=".xls,.xlsx" required>
+                <label>Attendance File(s) <span class="hint">— select one or more monthly .xls/.xlsx files</span></label>
+                <input type="file" name="files" accept=".xls,.xlsx" multiple required>
+                <div id="file-list" style="margin-top:8px; font-size:0.85rem; color:#555;"></div>
             </div>
 
             <hr class="divider">
@@ -177,5 +179,16 @@
             <button type="submit" class="btn">Generate Report</button>
         </form>
     </div>
+    <script>
+        document.querySelector('input[name="files"]').addEventListener('change', function() {
+            var list = document.getElementById('file-list');
+            if (this.files.length === 0) { list.innerHTML = ''; return; }
+            var html = '<strong>' + this.files.length + ' file(s) selected:</strong><br>';
+            for (var i = 0; i < this.files.length; i++) {
+                html += '&bull; ' + this.files[i].name + '<br>';
+            }
+            list.innerHTML = html;
+        });
+    </script>
 </body>
 </html>
