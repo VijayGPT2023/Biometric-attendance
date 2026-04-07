@@ -1057,20 +1057,18 @@ def login():
             # Check concurrent login
             existing_session = user['active_session_id'] if 'active_session_id' in user.keys() else ''
             if existing_session and existing_session != '':
-                # Check if the existing session is still active (not timed out)
                 last_act = (user['last_activity'] if 'last_activity' in user.keys() else '') or ''
                 if last_act:
                     try:
                         last_dt = datetime.fromisoformat(last_act)
                         elapsed = (datetime.now() - last_dt).total_seconds()
                         if elapsed < SESSION_TIMEOUT_MINUTES * 60:
-                            flash('This account is already logged in from another session. '
-                                  'Please wait or contact Admin.')
-                            return render_template('login.html')
+                            # Active session exists - warn but allow (force-logout old session)
+                            flash('Note: Your previous session has been terminated.')
                     except (ValueError, TypeError):
                         pass
 
-            # Create new session
+            # Create new session (replaces any old session)
             new_session_id = str(uuid.uuid4())
             session['user_id'] = user['id']
             session['emp_code'] = user['emp_code']

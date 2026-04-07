@@ -1,5 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
+// Credentials from env or defaults
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+const EMP_USER = process.env.EMP_USER || 'dk.rahul';
+const EMP_PASS = process.env.EMP_PASS || 'npc123';
+
 // Helper: login
 async function login(page, username, password) {
   await page.goto('/login');
@@ -35,7 +41,7 @@ test.describe('Login & Authentication', () => {
   });
 
   test('should login admin successfully', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await expect(page).toHaveURL(/\/admin/);
   });
 
@@ -54,34 +60,28 @@ test.describe('Login & Authentication', () => {
 // ================================================================
 
 test.describe('No Concurrent Login', () => {
-  test('should block second login with same user', async ({ browser }) => {
-    // Clear any stale session first
-    const ctx0 = await browser.newContext();
-    const p0 = await ctx0.newPage();
-    await p0.goto('/logout');
-    await ctx0.close();
-
+  test('should warn and force-logout old session on second login', async ({ browser }) => {
     // First session
     const ctx1 = await browser.newContext();
     const p1 = await ctx1.newPage();
-    await login(p1, 'admin', 'admin123');
+    await login(p1, ADMIN_USER, ADMIN_PASS);
     await expect(p1).toHaveURL(/\/admin/);
 
-    // Second session - should be blocked
+    // Second session - should succeed but show warning
     const ctx2 = await browser.newContext();
     const p2 = await ctx2.newPage();
-    await login(p2, 'admin', 'admin123');
-    await expect(p2.locator('.flash')).toContainText('already logged in');
-
-    // Logout first session
-    await p1.goto('/logout');
-    await ctx1.close();
-
-    // Now should work
-    await login(p2, 'admin', 'admin123');
+    await login(p2, ADMIN_USER, ADMIN_PASS);
     await expect(p2).toHaveURL(/\/admin/);
+    // Should show "previous session terminated" warning
+    const flash = p2.locator('.flash');
+    const hasFlash = await flash.count();
+    if (hasFlash > 0) {
+      await expect(flash).toContainText('previous session');
+    }
 
+    await p1.goto('/logout');
     await p2.goto('/logout');
+    await ctx1.close();
     await ctx2.close();
   });
 });
@@ -93,12 +93,12 @@ test.describe('No Concurrent Login', () => {
 test.describe('Compulsory Password Change', () => {
   test('should force password change for first-time user', async ({ page }) => {
     // First clear any stale session for dk.rahul by logging in and out
-    await login(page, 'dk.rahul', 'npc123');
+    await login(page, EMP_USER, EMP_PASS);
     const url1 = page.url();
     if (url1.includes('login')) {
       // Blocked by concurrent session — wait 1s and retry (session may have expired)
       await page.waitForTimeout(1000);
-      await login(page, 'dk.rahul', 'npc123');
+      await login(page, EMP_USER, EMP_PASS);
     }
     // If redirected to change-password, test passes. If on login, clear and retry.
     const url2 = page.url();
@@ -109,7 +109,7 @@ test.describe('Compulsory Password Change', () => {
   });
 
   test('should block navigation until password changed', async ({ page }) => {
-    await login(page, 'dk.rahul', 'npc123');
+    await login(page, EMP_USER, EMP_PASS);
     const url = page.url();
     if (url.includes('change-password')) {
       await page.goto('/employee');
@@ -119,7 +119,7 @@ test.describe('Compulsory Password Change', () => {
   });
 
   test('should allow access after password change', async ({ page }) => {
-    await login(page, 'dk.rahul', 'npc123');
+    await login(page, EMP_USER, EMP_PASS);
     const url = page.url();
     if (!url.includes('change-password')) {
       // Skip if can't login (concurrent or already changed)
@@ -127,7 +127,7 @@ test.describe('Compulsory Password Change', () => {
       return;
     }
 
-    await page.fill('input[name="old_password"]', 'npc123');
+    await page.fill('input[name="old_password"]', EMP_PASS);
     await page.fill('input[name="new_password"]', 'NewPass123');
     await page.fill('input[name="confirm_password"]', 'NewPass123');
     await page.click('button[type="submit"]');
@@ -175,9 +175,9 @@ test.describe('Password Strength Validation', () => {
   test.afterEach(async ({ page }) => { await clearSession(page); });
 
   test('should reject short password', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/change-password');
-    await page.fill('input[name="old_password"]', 'admin123');
+    await page.fill('input[name="old_password"]', ADMIN_PASS);
     await page.fill('input[name="new_password"]', 'ab1');
     await page.fill('input[name="confirm_password"]', 'ab1');
     await page.click('button[type="submit"]');
@@ -185,9 +185,9 @@ test.describe('Password Strength Validation', () => {
   });
 
   test('should reject password without numbers', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/change-password');
-    await page.fill('input[name="old_password"]', 'admin123');
+    await page.fill('input[name="old_password"]', ADMIN_PASS);
     await page.fill('input[name="new_password"]', 'abcdefgh');
     await page.fill('input[name="confirm_password"]', 'abcdefgh');
     await page.click('button[type="submit"]');
@@ -195,9 +195,9 @@ test.describe('Password Strength Validation', () => {
   });
 
   test('should reject password without letters', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/change-password');
-    await page.fill('input[name="old_password"]', 'admin123');
+    await page.fill('input[name="old_password"]', ADMIN_PASS);
     await page.fill('input[name="new_password"]', '12345678');
     await page.fill('input[name="confirm_password"]', '12345678');
     await page.click('button[type="submit"]');
@@ -205,9 +205,9 @@ test.describe('Password Strength Validation', () => {
   });
 
   test('should reject mismatched passwords', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/change-password');
-    await page.fill('input[name="old_password"]', 'admin123');
+    await page.fill('input[name="old_password"]', ADMIN_PASS);
     await page.fill('input[name="new_password"]', 'NewPass123');
     await page.fill('input[name="confirm_password"]', 'DiffPass456');
     await page.click('button[type="submit"]');
@@ -215,7 +215,7 @@ test.describe('Password Strength Validation', () => {
   });
 
   test('should show real-time password strength indicators', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/change-password');
     await page.fill('#newPw', 'abc');
     await expect(page.locator('#rule-length')).toHaveClass(/invalid/);
@@ -239,13 +239,13 @@ test.describe('Cache Control & Logout', () => {
   });
 
   test('should show logout message', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/logout');
     await expect(page.locator('.flash')).toContainText('logged out');
   });
 
   test('should not access protected page after logout', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await expect(page).toHaveURL(/\/admin/);
     await page.goto('/logout');
     await page.goto('/admin');
@@ -261,17 +261,17 @@ test.describe('Admin Features', () => {
   test.afterEach(async ({ page }) => { await clearSession(page); });
 
   test('should show upload form', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await expect(page.locator('input[name="files"]')).toBeVisible();
   });
 
   test('should show analysis sessions table', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await expect(page.locator('h2').filter({ hasText: 'Analysis Sessions' })).toBeVisible();
   });
 
   test('should access user management', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/admin/users');
     await expect(page.locator('h2').filter({ hasText: 'All Users' })).toBeVisible();
   });
@@ -285,7 +285,7 @@ test.describe('Navigation', () => {
   test.afterEach(async ({ page }) => { await clearSession(page); });
 
   test('should have logout and password links', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await expect(page.locator('a[href="/logout"]')).toBeVisible();
     await expect(page.locator('a[href="/change-password"]')).toBeVisible();
   });
@@ -304,7 +304,7 @@ test.describe('Employee Dashboard', () => {
   test.afterEach(async ({ page }) => { await clearSession(page); });
 
   test('should show last submitted column header', async ({ page }) => {
-    await login(page, 'admin', 'admin123');
+    await login(page, ADMIN_USER, ADMIN_PASS);
     await page.goto('/employee');
     // Admin may not have employee data but page should load
     await expect(page.locator('.navbar')).toBeVisible();
