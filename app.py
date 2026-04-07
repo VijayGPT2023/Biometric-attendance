@@ -96,6 +96,9 @@ def init_db():
             role TEXT NOT NULL DEFAULT 'employee',
             is_active INTEGER DEFAULT 1,
             username TEXT DEFAULT '',
+            must_change_password INTEGER DEFAULT 1,
+            active_session_id TEXT DEFAULT '',
+            last_activity TEXT DEFAULT '',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS departments (
@@ -385,11 +388,30 @@ def seed_users(db):
 #  AUTH DECORATORS
 # ================================================================
 
+SESSION_TIMEOUT_MINUTES = 30
+
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        # Check session timeout
+        last = session.get('last_activity')
+        if last:
+            try:
+                last_dt = datetime.fromisoformat(last)
+                if (datetime.now() - last_dt).total_seconds() > SESSION_TIMEOUT_MINUTES * 60:
+                    session.clear()
+                    flash('Session expired due to inactivity. Please login again.')
+                    return redirect(url_for('login'))
+            except (ValueError, TypeError):
+                pass
+        session['last_activity'] = datetime.now().isoformat()
+        # Check must_change_password
+        if session.get('must_change_password') and request.endpoint != 'change_password' and request.endpoint != 'logout':
+            flash('You must change your password before continuing.')
+            return redirect(url_for('change_password'))
         return f(*args, **kwargs)
     return decorated
 
@@ -400,12 +422,37 @@ def role_required(*roles):
         def decorated(*args, **kwargs):
             if 'user_id' not in session:
                 return redirect(url_for('login'))
+            # Check session timeout
+            last = session.get('last_activity')
+            if last:
+                try:
+                    last_dt = datetime.fromisoformat(last)
+                    if (datetime.now() - last_dt).total_seconds() > SESSION_TIMEOUT_MINUTES * 60:
+                        session.clear()
+                        flash('Session expired due to inactivity. Please login again.')
+                        return redirect(url_for('login'))
+                except (ValueError, TypeError):
+                    pass
+            session['last_activity'] = datetime.now().isoformat()
+            if session.get('must_change_password') and request.endpoint != 'change_password' and request.endpoint != 'logout':
+                flash('You must change your password before continuing.')
+                return redirect(url_for('change_password'))
             if session.get('role') not in roles:
                 flash('Access denied.')
                 return redirect(url_for('dashboard'))
             return f(*args, **kwargs)
         return decorated
     return decorator
+
+
+@app.after_request
+def add_no_cache_headers(response):
+    """Prevent back-button after logout by disabling cache on HTML pages."""
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 
 # ================================================================
@@ -993,23 +1040,69 @@ def login():
         login_id = request.form.get('username', '').strip().lower()
         password = request.form.get('password', '')
         db = get_db()
-        # Try username first, then emp_code as fallback
         user = db.execute(
             'SELECT * FROM users WHERE (LOWER(username) = ? OR emp_code = ?) AND is_active = 1',
             (login_id, login_id)).fetchone()
         if user and check_password_hash(user['password_hash'], password):
+            # Check concurrent login
+            existing_session = user['active_session_id']
+            if existing_session and existing_session != '':
+                # Check if the existing session is still active (not timed out)
+                last_act = user['last_activity'] or ''
+                if last_act:
+                    try:
+                        last_dt = datetime.fromisoformat(last_act)
+                        elapsed = (datetime.now() - last_dt).total_seconds()
+                        if elapsed < SESSION_TIMEOUT_MINUTES * 60:
+                            flash('This account is already logged in from another session. '
+                                  'Please wait or contact Admin.')
+                            return render_template('login.html')
+                    except (ValueError, TypeError):
+                        pass
+
+            # Create new session
+            new_session_id = str(uuid.uuid4())
             session['user_id'] = user['id']
             session['emp_code'] = user['emp_code']
             session['user_name'] = user['name']
             session['role'] = user['role']
+            session['session_token'] = new_session_id
+            session['last_activity'] = datetime.now().isoformat()
+            session['must_change_password'] = bool(user['must_change_password'])
+
+            # Store active session in DB
+            db.execute('UPDATE users SET active_session_id = ?, last_activity = ? WHERE id = ?',
+                       (new_session_id, datetime.now().isoformat(), user['id']))
+            db.commit()
+
+            if user['must_change_password']:
+                flash('Welcome! Please change your default password to continue.')
+                return redirect(url_for('change_password'))
+
             return redirect(url_for('dashboard'))
         flash('Invalid Username or Password')
     return render_template('login.html')
 
 
+@app.route('/forgot-password')
+def forgot_password():
+    return render_template('forgot_password.html')
+
+
 @app.route('/logout')
 def logout():
+    # Clear active session in DB
+    user_id = session.get('user_id')
+    if user_id:
+        try:
+            db = get_db()
+            db.execute('UPDATE users SET active_session_id = ?, last_activity = ? WHERE id = ?',
+                       ('', '', user_id))
+            db.commit()
+        except Exception:
+            pass
     session.clear()
+    flash('You have been logged out.')
     return redirect(url_for('login'))
 
 
@@ -1413,6 +1506,13 @@ def employee_dashboard():
         accepted = sum(1 for j in justs if j['status'] == 'accepted')
         declined = sum(1 for j in justs if j['status'] == 'declined')
 
+        # Get last submission timestamp
+        last_sub = db.execute('''
+            SELECT MAX(updated_at) FROM justifications
+            WHERE session_uuid = ? AND emp_code = ? AND status != 'pending'
+        ''', (s['session_uuid'], emp_code)).fetchone()
+        last_submitted = last_sub[0] if last_sub and last_sub[0] else None
+
         session_data.append({
             'session_uuid': s['session_uuid'],
             'start_date': s['start_date'],
@@ -1424,6 +1524,7 @@ def employee_dashboard():
             'query': query,
             'accepted': accepted,
             'declined': declined,
+            'last_submitted': last_submitted,
         })
 
     return render_template('employee_dashboard.html', session_data=session_data)
@@ -1485,7 +1586,9 @@ def employee_justify(session_uuid):
     """Employee submits justifications for anomalies."""
     emp_code = session.get('emp_code')
     db = get_db()
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
+    count = 0
     for key, value in request.form.items():
         if key.startswith('justification_'):
             anomaly_date = key.replace('justification_', '')
@@ -1498,8 +1601,16 @@ def employee_justify(session_uuid):
                     WHERE session_uuid = ? AND emp_code = ? AND anomaly_date = ?
                           AND status IN ('pending', 'query')
                 ''', (value, session_uuid, emp_code, anomaly_date))
+                count += 1
     db.commit()
-    flash('Justifications submitted to your Department Head.')
+
+    now_str = datetime.now().strftime('%d-%b-%Y %I:%M %p')
+
+    if is_ajax:
+        return jsonify({'success': True, 'count': count, 'timestamp': now_str})
+
+    flash(f'Justifications submitted successfully at {now_str}. '
+          f'{count} justification(s) sent to your Department Head.')
     return redirect(url_for('employee_report', session_uuid=session_uuid))
 
 
@@ -1779,9 +1890,22 @@ def dept_report(session_id, dept_name):
 #  PASSWORD CHANGE
 # ================================================================
 
+def validate_password_strength(password):
+    """Password must be 8+ chars, have at least one letter and one number."""
+    if len(password) < 8:
+        return 'Password must be at least 8 characters long.'
+    if not any(c.isalpha() for c in password):
+        return 'Password must contain at least one letter.'
+    if not any(c.isdigit() for c in password):
+        return 'Password must contain at least one number.'
+    return None
+
+
 @app.route('/change-password', methods=['GET', 'POST'])
-@login_required
 def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
     if request.method == 'POST':
         old_pw = request.form.get('old_password', '')
         new_pw = request.form.get('new_password', '')
@@ -1791,6 +1915,11 @@ def change_password():
             flash('New passwords do not match.')
             return redirect(url_for('change_password'))
 
+        strength_error = validate_password_strength(new_pw)
+        if strength_error:
+            flash(strength_error)
+            return redirect(url_for('change_password'))
+
         db = get_db()
         user = db.execute('SELECT * FROM users WHERE id = ?',
                           (session['user_id'],)).fetchone()
@@ -1798,13 +1927,15 @@ def change_password():
             flash('Current password is incorrect.')
             return redirect(url_for('change_password'))
 
-        db.execute('UPDATE users SET password_hash = ? WHERE id = ?',
+        db.execute('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?',
                    (generate_password_hash(new_pw), session['user_id']))
         db.commit()
+        session['must_change_password'] = False
         flash('Password changed successfully.')
         return redirect(url_for('dashboard'))
 
-    return render_template('change_password.html')
+    is_forced = session.get('must_change_password', False)
+    return render_template('change_password.html', forced=is_forced)
 
 
 # ================================================================

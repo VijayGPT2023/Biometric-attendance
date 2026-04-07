@@ -192,8 +192,12 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                <div style="margin-top: 16px; text-align: right;">
-                    <button type="submit" class="btn btn-green">Submit Justifications</button>
+                <div style="margin-top: 16px; display:flex; justify-content:space-between; align-items:center;">
+                    <span id="offlineMsg" style="display:none; color:#c62828; font-size:0.85rem; font-weight:600;">
+                        No internet connection. Data saved locally.
+                    </span>
+                    <span id="successMsg" style="display:none; color:#2e7d32; font-size:0.85rem; font-weight:600;"></span>
+                    <button type="submit" class="btn btn-green" id="submitBtn">Submit Justifications</button>
                 </div>
             </form>
             {% else %}
@@ -201,5 +205,136 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Offline notification popup -->
+    <div id="offlinePopup" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%);
+         background:#c62828; color:#fff; padding:14px 28px; border-radius:10px; z-index:9999;
+         box-shadow:0 4px 20px rgba(0,0,0,0.3); font-size:0.9rem; font-weight:600;">
+        No internet connection. Your data has been saved locally and will be submitted automatically when connection is restored.
+    </div>
+    <div id="onlinePopup" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%);
+         background:#2e7d32; color:#fff; padding:14px 28px; border-radius:10px; z-index:9999;
+         box-shadow:0 4px 20px rgba(0,0,0,0.3); font-size:0.9rem; font-weight:600;">
+        Connection restored! Submitting saved data...
+    </div>
+
+    <script>
+        var STORAGE_KEY = 'justification_draft_{{ session_uuid }}';
+        var form = document.getElementById('justifyForm');
+        if (form) { form.id = 'justifyForm'; }
+
+        // Auto-save to localStorage on input
+        document.querySelectorAll('textarea[name^="justification_"]').forEach(function(ta) {
+            // Load saved draft
+            var saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    var data = JSON.parse(saved);
+                    if (data[ta.name] && !ta.value) {
+                        ta.value = data[ta.name];
+                        ta.style.borderColor = '#f57c00';
+                    }
+                } catch(e) {}
+            }
+
+            ta.addEventListener('input', function() {
+                saveDraft();
+            });
+        });
+
+        function saveDraft() {
+            var data = {};
+            document.querySelectorAll('textarea[name^="justification_"]').forEach(function(ta) {
+                if (ta.value.trim()) {
+                    data[ta.name] = ta.value.trim();
+                }
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function showPopup(id, duration) {
+            var el = document.getElementById(id);
+            el.style.display = 'block';
+            setTimeout(function() { el.style.display = 'none'; }, duration || 5000);
+        }
+
+        // Handle form submission with offline support
+        var justifyForm = document.querySelector('form[action*="/employee/justify/"]');
+        if (justifyForm) {
+            justifyForm.addEventListener('submit', function(e) {
+                if (!navigator.onLine) {
+                    e.preventDefault();
+                    saveDraft();
+                    showPopup('offlinePopup', 6000);
+                    document.getElementById('offlineMsg').style.display = 'inline';
+                    return;
+                }
+
+                // Online: submit via AJAX
+                e.preventDefault();
+                var formData = new FormData(justifyForm);
+                var btn = document.getElementById('submitBtn');
+                btn.disabled = true;
+                btn.textContent = 'Submitting...';
+
+                fetch(justifyForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        var msg = document.getElementById('successMsg');
+                        msg.textContent = 'Submitted successfully at ' + data.timestamp +
+                                          ' (' + data.count + ' justification(s))';
+                        msg.style.display = 'inline';
+                        document.getElementById('offlineMsg').style.display = 'none';
+                        btn.textContent = 'Submitted';
+                        // Reload after 2s to refresh statuses
+                        setTimeout(function() { window.location.reload(); }, 2000);
+                    }
+                })
+                .catch(function(err) {
+                    // Network error during submit
+                    saveDraft();
+                    showPopup('offlinePopup', 6000);
+                    document.getElementById('offlineMsg').style.display = 'inline';
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Justifications';
+                });
+            });
+        }
+
+        // Auto-submit saved data when coming back online
+        window.addEventListener('online', function() {
+            var saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    var data = JSON.parse(saved);
+                    if (Object.keys(data).length > 0) {
+                        showPopup('onlinePopup', 4000);
+                        // Auto-submit after short delay
+                        setTimeout(function() {
+                            var formEl = document.querySelector('form[action*="/employee/justify/"]');
+                            if (formEl) {
+                                // Fill in saved data
+                                for (var key in data) {
+                                    var ta = formEl.querySelector('[name="' + key + '"]');
+                                    if (ta) ta.value = data[key];
+                                }
+                                formEl.dispatchEvent(new Event('submit'));
+                            }
+                        }, 1500);
+                    }
+                } catch(e) {}
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            showPopup('offlinePopup', 5000);
+        });
+    </script>
 </body>
 </html>

@@ -81,6 +81,7 @@
                         <th>Query</th>
                         <th>Accepted</th>
                         <th>Declined</th>
+                        <th>Last Submitted</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -94,6 +95,9 @@
                         <td>{% if s.query %}<span class="badge badge-query">{{ s.query }}</span>{% else %}0{% endif %}</td>
                         <td>{% if s.accepted %}<span class="badge badge-accepted">{{ s.accepted }}</span>{% else %}0{% endif %}</td>
                         <td>{% if s.declined %}<span class="badge badge-declined">{{ s.declined }}</span>{% else %}0{% endif %}</td>
+                        <td style="font-size:0.78rem; color:#555;">
+                            {% if s.last_submitted %}{{ s.last_submitted[:16] }}{% else %}<span style="color:#bbb;">Not yet</span>{% endif %}
+                        </td>
                         <td><a href="/employee/report/{{ s.session_uuid }}" class="btn btn-green">View &amp; Justify</a></td>
                     </tr>
                     {% endfor %}

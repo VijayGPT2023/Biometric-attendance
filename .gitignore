@@ -8,3 +8,7 @@ data/
 *.pdf
 cookies.txt
 .env
+node_modules/
+test-results/
+package.json
+package-lock.json
