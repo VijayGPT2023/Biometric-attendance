@@ -137,10 +137,247 @@ def init_db():
     existing = db.execute('SELECT id FROM users WHERE emp_code = ?', ('admin',)).fetchone()
     if not existing:
         db.execute(
-            'INSERT INTO users (emp_code, name, password_hash, role) VALUES (?, ?, ?, ?)',
-            ('admin', 'Administrator', generate_password_hash('admin123'), 'admin'))
+            'INSERT INTO users (emp_code, name, password_hash, role, username) VALUES (?, ?, ?, ?, ?)',
+            ('admin', 'Administrator', generate_password_hash('admin123'), 'admin', 'admin'))
         db.commit()
+        seed_users(db)
     db.close()
+
+
+def seed_users(db):
+    """Auto-seed all employees, departments, and head accounts on first startup."""
+    pw = generate_password_hash('npc123')
+
+    # --- Canonical departments ---
+    CANONICAL_DEPTS = [
+        'AB Group', 'Admin', 'DG Sectt', 'ECA Group', 'EM Group',
+        'ES Group', 'Finance', 'HQ', 'HRM Group', 'IE Group', 'IS Group', 'IT Group'
+    ]
+    for dept in CANONICAL_DEPTS:
+        db.execute('INSERT OR IGNORE INTO departments (name) VALUES (?)', (dept,))
+    db.commit()
+    dept_id_map = {r[1]: r[0] for r in db.execute('SELECT id, name FROM departments').fetchall()}
+
+    # --- Position-based head accounts ---
+    # DG, DDG-I, DDG-II -> ALL DEPARTMENTS
+    top_roles = [
+        ('DG',     'Director General', 'dg'),
+        ('DDG-I',  'DDG-I',            'ddg1'),
+        ('DDG-II', 'DDG-II',           'ddg2'),
+    ]
+    all_dept_ids = list(dept_id_map.values())
+    for emp_code, name, username in top_roles:
+        db.execute('INSERT OR IGNORE INTO users (emp_code, name, password_hash, role, username) VALUES (?, ?, ?, ?, ?)',
+                   (emp_code, name, pw, 'head', username))
+        uid = db.execute('SELECT id FROM users WHERE emp_code = ?', (emp_code,)).fetchone()[0]
+        for did in all_dept_ids:
+            db.execute('INSERT OR IGNORE INTO head_departments (user_id, dept_id) VALUES (?, ?)', (uid, did))
+
+    # GH accounts -> specific departments
+    gh_accounts = [
+        ('GH-AB',    'GH AB Group',    'gh.abgroup',   ['AB Group']),
+        ('GH-ADMIN', 'GH Admin',       'gh.admin',     ['Admin', 'DG Sectt', 'HQ']),
+        ('GH-ECA',   'GH ECA Group',   'gh.ecagroup',  ['ECA Group', 'IS Group']),
+        ('GH-EM',    'GH EM Group',    'gh.emgroup',   ['EM Group']),
+        ('GH-ES',    'GH ES Group',    'gh.esgroup',   ['ES Group']),
+        ('GH-FIN',   'GH Finance',     'gh.finance',   ['Finance']),
+        ('GH-HRM',   'GH HRM Group',   'gh.hrmgroup',  ['HRM Group']),
+        ('GH-IE',    'GH IE Group',    'gh.iegroup',   ['IE Group']),
+        ('GH-IT',    'GH IT Group',    'gh.itgroup',   ['IT Group']),
+    ]
+    for emp_code, name, username, dept_names in gh_accounts:
+        db.execute('INSERT OR IGNORE INTO users (emp_code, name, password_hash, role, username) VALUES (?, ?, ?, ?, ?)',
+                   (emp_code, name, pw, 'head', username))
+        uid = db.execute('SELECT id FROM users WHERE emp_code = ?', (emp_code,)).fetchone()[0]
+        for dn in dept_names:
+            if dn in dept_id_map:
+                db.execute('INSERT OR IGNORE INTO head_departments (user_id, dept_id) VALUES (?, ?)',
+                           (uid, dept_id_map[dn]))
+
+    # --- Employee accounts (Jan-Mar 2026 data) ---
+    EMPLOYEES = [
+        ('00000097', 'Aman Gulati',             'IE Group'),
+        ('00000099', 'Nakul',                   'AB Group'),
+        ('00000101', 'Md. Khalid Anwar',        'Admin'),
+        ('00000103', 'Mahotsav Priya',          'ECA Group'),
+        ('00000105', 'Raj Kumar',               'Admin'),
+        ('00000111', 'Amit Dabas',              'DG Sectt'),
+        ('00000113', 'Raj Kumar Rawat',         'ECA Group'),
+        ('00000116', 'M.M. Senghal',            'Finance'),
+        ('00000120', 'Nand Kishor',             'Admin'),
+        ('00000123', 'Tukeshwar Yadav',         'EM Group'),
+        ('00000124', 'Chadra Prakash',          'EM Group'),
+        ('00000130', 'Shivani Maurya',          'IS Group'),
+        ('00000132', 'Shivam Kumar',            'ECA Group'),
+        ('00000133', 'Sai Shankar G Nair',      'ECA Group'),
+        ('00000135', 'Deepika Goswami',         'HRM Group'),
+        ('00000136', 'Sankriti Thakur',         'ES Group'),
+        ('00000138', 'Shukla Pal Maitra',       'ECA Group'),
+        ('00000139', 'Saurabh Singh',           'AB Group'),
+        ('00000140', 'Sandeep Aka',             'IE Group'),
+        ('00000141', 'Pradeep Kumar',           'Admin'),
+        ('00000142', 'Vikas',                   'Admin'),
+        ('00000143', 'Mahender',                'Admin'),
+        ('00000144', 'Shashank Srivastava',     'EM Group'),
+        ('00000145', 'Rachna',                  'DG Sectt'),
+        ('00000146', 'S N Rao',                 'Admin'),
+        ('00000147', 'Ramesh Kumar',            'Admin'),
+        ('00000148', 'K K Sharma',              'Admin'),
+        ('00000149', 'Diwakar',                 'Admin'),
+        ('00000152', 'Mohd Asim',               'Admin'),
+        ('00000153', 'C N Dubey',               'Admin'),
+        ('00000158', 'Uday Bhan Yadav',         'Admin'),
+        ('00000159', 'Chaman Kumar Shukla',     'EM Group'),
+        ('00000160', 'Vijay Kumar',             'Admin'),
+        ('00000161', 'Akash Bhartiya',          'ECA Group'),
+        ('00000162', 'Ronak',                   'ECA Group'),
+        ('00000163', 'Dr Rajat Sharma',         'Admin'),
+        ('00000164', 'Geetika Sharma',          'IT Group'),
+        ('00000165', 'Rachana Shalini',         'Admin'),
+        ('00000166', 'Kritika Garg',            'IE Group'),
+        ('00000167', 'Tanaya Kapila',           'IE Group'),
+        ('00000168', 'Dipti Rawat',             'IE Group'),
+        ('00000169', 'Durgesh Verma',           'IE Group'),
+        ('00000170', 'Purnika',                 'IE Group'),
+        ('00000181', 'Naveen',                  'IE Group'),
+        ('00000182', 'Yatish',                  'IE Group'),
+        ('00000183', 'Bikash Kumar',            'IE Group'),
+        ('00000184', 'P Ganesh Patro',          'Admin'),
+        ('00000185', 'Chanchal Soni',           'IE Group'),
+        ('00000186', 'Anita Singh',             'Admin'),
+        ('00000187', 'Shahzad',                 'Admin'),
+        ('00000188', 'Ayushman Shukla',         'Admin'),
+        ('00000189', 'Mayank Mishra',           'Admin'),
+        ('1',        'Malkhan Singh',           'Admin'),
+        ('2',        'Nidhi',                   'Admin'),
+        ('3',        'Sandeep Kumar Gupta',     'Admin'),
+        ('5',        'Pooja Nag',               'Admin'),
+        ('6',        'Yadu Kumar Yadav',        'Admin'),
+        ('S007',     'Abhishek',                'Admin'),
+        ('S008',     'Rohtas',                  'Admin'),
+        ('S009',     'Gushneer',                'IE Group'),
+        ('S010',     'Om Pal',                  'Finance'),
+        ('S011',     'Bijender',                'HQ'),
+        ('S012',     'Vikas Kumar Nehra',       'HRM Group'),
+        ('S013',     'Sourabh Yadav',           'AB Group'),
+        ('S014',     'Deepak',                  'Finance'),
+        ('S015',     'Ganesh Deen',             'Admin'),
+        ('S016',     'Abhishek',                'IT Group'),
+        ('S017',     'Vijay Kr. Nehra',         'ECA Group'),
+        ('S018',     'Sourabh Mittal',          'Admin'),
+        ('S019',     'Ashok Kr.',               'Admin'),
+        ('S020',     'Shurveer Singh',          'Admin'),
+        ('S021',     'Arun Kaushik',            'Finance'),
+        ('S022',     'Nitin',                   'Admin'),
+        ('S023',     'Suraj Bhan',              'Admin'),
+        ('S024',     'Rajiv Bihari',            'Finance'),
+        ('S025',     'Shashi Ranjan',           'IS Group'),
+        ('S026',     'Amitava Ray',             'Admin'),
+        ('S027',     'Anup',                    'Admin'),
+        ('S028',     'Neeraj',                  'Finance'),
+        ('S029',     'Rekha Kumari',            'ES Group'),
+        ('S030',     'Heeralal Mehto',          'ECA Group'),
+        ('S031',     'T.D Pandey',              'DG Sectt'),
+        ('S032',     'Gopi Nath',               'Finance'),
+        ('S033',     'Sweta',                   'Finance'),
+        ('S034',     'Moh. Kadir',              'Finance'),
+        ('S035',     'Mahender Deep Kaur',      'Finance'),
+        ('S036',     'Dharam Veer',             'Finance'),
+        ('S037',     'Pinky',                   'Finance'),
+        ('S038',     'Jai Karan',               'Admin'),
+        ('S039',     'Ashutosh Makup',          'IE Group'),
+        ('S040',     'Makan Singh Negi',        'IE Group'),
+        ('S041',     'Saroj',                   'IE Group'),
+        ('S042',     'Dayavati',                'IE Group'),
+        ('S043',     'Sanjeev Bhatia',          'DG Sectt'),
+        ('S044',     'Sunil Kumar Jha',         'AB Group'),
+        ('S045',     'Rashid',                  'Finance'),
+        ('S046',     'Sidharth Pal',            'IE Group'),
+        ('S047',     'S.P Singh',               'AB Group'),
+        ('S048',     'Kumud Jacob',             'IE Group'),
+        ('S049',     'Sunil Kr.',               'AB Group'),
+        ('S050',     'Om Prakash',              'Admin'),
+        ('S051',     'Ashish',                  'AB Group'),
+        ('S052',     'Binko',                   'AB Group'),
+        ('S053',     'Hemant Kr.',              'AB Group'),
+        ('S054',     'Bajrang',                 'AB Group'),
+        ('S055',     'D.K Rahul',               'HRM Group'),
+        ('S056',     'Rajesh Chand Katoch',     'ES Group'),
+        ('S057',     'Urmila',                  'Admin'),
+        ('S058',     'Lalit Shankar Kamde',     'ECA Group'),
+        ('S059',     'Abhinav Mishra',          'Admin'),
+        ('S060',     'Anand Verma',             'EM Group'),
+        ('S061',     'Asmita Raj',              'HRM Group'),
+        ('S062',     'Rajendra Paswan',         'ES Group'),
+        ('S063',     'Tribhuvan',               'ECA Group'),
+        ('S064',     'B. Prabhakar',            'IE Group'),
+        ('S065',     'Hemant',                  'ECA Group'),
+        ('S066',     'Nikita',                  'ECA Group'),
+        ('S067',     'Rajesh Sund',             'ES Group'),
+        ('S068',     'Santosh Kumar',           'IT Group'),
+        ('S069',     'Shabnam',                 'ECA Group'),
+        ('S070',     'Anupam Saini',            'IS Group'),
+        ('S071',     'Nikhil Negi',             'Finance'),
+        ('S072',     'Rajiv Gupta',             'IT Group'),
+        ('S073',     'Devender Laun',           'IE Group'),
+        ('S074',     'Sita Sharan Jha',         'ES Group'),
+        ('S075',     'Jitendra Kr. Srivastava', 'EM Group'),
+        ('S076',     'Naman Upadhyay',          'IE Group'),
+        ('S077',     'S.P Tripathi',            'HRM Group'),
+        ('S078',     'Ashish Prabhash Bhandwalkar', 'ECA Group'),
+        ('S079',     'Sanjay Kr. Triwedi',      'IE Group'),
+        ('S080',     'Ashmita',                 'IT Group'),
+        ('S081',     'Manoj Kr. Acharya',       'Admin'),
+        ('S082',     'Samdhani',                'HRM Group'),
+        ('S083',     'Saurabh Sharma',          'Admin'),
+        ('S084',     'Kritika Shukla',          'HRM Group'),
+        ('S085',     'Bhuvan',                  'IS Group'),
+        ('S086',     'Nitin Agarwal',           'ES Group'),
+        ('S087',     'Nisha',                   'Admin'),
+        ('S088',     'Vinod Kr. Singh',         'Admin'),
+        ('S089',     'Manish Meena',            'EM Group'),
+        ('S090',     'Prashant Srivastava',     'EM Group'),
+        ('S091',     'Abhishek',                'EM Group'),
+        ('S092',     'Harsh Thukral',           'ECA Group'),
+        ('S093',     'N.H Panchbhai',           'IT Group'),
+        ('S094',     'Shirish Paliwal',         'IE Group'),
+        ('S095',     'K.D Bhardwaj',            'ECA Group'),
+        ('S106',     'Suresh Kumar',            'Admin'),
+    ]
+
+    def make_username(name):
+        clean = name.strip()
+        for prefix in ['Mr. ', 'Mr ', 'Mrs. ', 'Dr. ', 'Dr ', 'Sh. ', 'Sh ']:
+            if clean.lower().startswith(prefix.lower()):
+                clean = clean[len(prefix):]
+        parts = [p.strip().lower().replace('.', '').replace(',', '') for p in clean.split() if p.strip()]
+        parts = [p for p in parts if p]
+        if not parts:
+            return None
+        if len(parts) == 1:
+            return parts[0]
+        first, last = parts[0], parts[-1]
+        if len(first) <= 2 and len(parts) > 2:
+            first = parts[1]
+        return f'{first}.{last}'
+
+    used = {'admin', 'dg', 'ddg1', 'ddg2',
+            'gh.abgroup', 'gh.admin', 'gh.ecagroup', 'gh.emgroup',
+            'gh.esgroup', 'gh.finance', 'gh.hrmgroup', 'gh.iegroup', 'gh.itgroup'}
+
+    for emp_code, name, dept in EMPLOYEES:
+        uname = make_username(name) or emp_code.lower()
+        base = uname
+        counter = 2
+        while uname in used:
+            uname = f'{base}{counter}'
+            counter += 1
+        used.add(uname)
+        db.execute(
+            'INSERT OR IGNORE INTO users (emp_code, name, password_hash, role, username) VALUES (?, ?, ?, ?, ?)',
+            (emp_code, name, pw, 'employee', uname))
+
+    db.commit()
 
 
 # ================================================================
