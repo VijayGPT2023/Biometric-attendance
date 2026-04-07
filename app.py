@@ -1527,56 +1527,129 @@ def head_dashboard():
     if not managed_depts:
         flash('No departments assigned to you. Please contact Admin.')
         return render_template('head_dashboard.html',
-                               managed_depts=[], sessions_data=[])
+                               managed_depts=[], dept_groups={},
+                               session_uuid=None, start_date=None, end_date=None,
+                               params=None, just_summary={}, active_dept='')
 
-    # Get all sessions
-    all_sessions = db.execute(
-        'SELECT * FROM upload_sessions ORDER BY created_at DESC').fetchall()
+    # Department filter for DG/DDG (many departments)
+    active_dept = request.args.get('dept', '')
+    if active_dept and active_dept not in managed_depts:
+        active_dept = ''
 
-    sessions_data = []
-    for s in all_sessions:
-        data_path = os.path.join(app.config['DATA_FOLDER'], f"{s['session_uuid']}.json")
-        if not os.path.exists(data_path):
-            continue
+    # Get latest session
+    latest = db.execute(
+        'SELECT * FROM upload_sessions ORDER BY created_at DESC LIMIT 1').fetchone()
 
-        with open(data_path) as f:
-            data = json.load(f)
+    empty_ctx = dict(managed_depts=managed_depts, dept_groups={},
+                     session_uuid=None, start_date=None, end_date=None,
+                     params=None, just_summary={}, active_dept=active_dept)
 
-        results, start_date, end_date, params = deserialize_results(data)
+    if not latest:
+        return render_template('head_dashboard.html', **empty_ctx)
 
-        # Filter employees in managed departments
-        dept_emps = [r for r in results if r['department'] in managed_depts]
-        if not dept_emps:
-            continue
+    data_path = os.path.join(app.config['DATA_FOLDER'], f"{latest['session_uuid']}.json")
+    if not os.path.exists(data_path):
+        return render_template('head_dashboard.html', **empty_ctx)
 
-        # Count justification statuses
-        emp_codes = [r['emp_code'] for r in dept_emps]
+    with open(data_path) as f:
+        data = json.load(f)
+
+    results, start_date, end_date, params = deserialize_results(data)
+
+    # If many departments and a specific one is selected, show only that
+    # If many departments and none selected, show only dept list (no table)
+    show_depts = managed_depts
+    if len(managed_depts) > 3:
+        if active_dept:
+            show_depts = [active_dept]
+        else:
+            # Show just the dept chips, no employee tables yet
+            return render_template('head_dashboard.html',
+                                   managed_depts=managed_depts, dept_groups={},
+                                   session_uuid=latest['session_uuid'],
+                                   start_date=start_date, end_date=end_date,
+                                   params=params, just_summary={},
+                                   active_dept=active_dept,
+                                   pick_dept=True)
+
+    dept_results = [r for r in results if r['department'] in show_depts]
+    dept_groups = group_by_department(dept_results)
+
+    # Get justification summary per employee
+    emp_codes = [r['emp_code'] for r in dept_results]
+    just_summary = {}  # emp_code -> {pending, submitted, query, accepted, declined}
+    if emp_codes:
         placeholders = ','.join('?' * len(emp_codes))
         justs = db.execute(f'''
-            SELECT * FROM justifications
+            SELECT emp_code, status FROM justifications
             WHERE session_uuid = ? AND emp_code IN ({placeholders})
-            ORDER BY emp_code, anomaly_date
-        ''', [s['session_uuid']] + emp_codes).fetchall()
-
-        pending_review = sum(1 for j in justs if j['status'] in ('submitted', 'resubmitted'))
-        query_pending = sum(1 for j in justs if j['status'] == 'query')
-        decided = sum(1 for j in justs if j['status'] in ('accepted', 'declined'))
-
-        sessions_data.append({
-            'session_uuid': s['session_uuid'],
-            'start_date': s['start_date'],
-            'end_date': s['end_date'],
-            'created_at': s['created_at'],
-            'emp_count': len(dept_emps),
-            'pending_review': pending_review,
-            'query_pending': query_pending,
-            'decided': decided,
-            'total': len(justs),
-        })
+        ''', [latest['session_uuid']] + emp_codes).fetchall()
+        for j in justs:
+            code = j['emp_code']
+            if code not in just_summary:
+                just_summary[code] = {'pending': 0, 'submitted': 0, 'query': 0,
+                                      'accepted': 0, 'declined': 0}
+            st = j['status']
+            if st in just_summary[code]:
+                just_summary[code][st] += 1
+            elif st == 'resubmitted':
+                just_summary[code]['submitted'] += 1
 
     return render_template('head_dashboard.html',
                            managed_depts=managed_depts,
-                           sessions_data=sessions_data)
+                           dept_groups=dept_groups,
+                           session_uuid=latest['session_uuid'],
+                           start_date=start_date,
+                           end_date=end_date,
+                           params=params,
+                           just_summary=just_summary,
+                           active_dept=active_dept)
+
+
+@app.route('/head/employee/<session_uuid>/<emp_code>')
+@role_required('head', 'admin')
+def head_employee_detail(session_uuid, emp_code):
+    """Head views detailed anomaly report for a single employee."""
+    db = get_db()
+
+    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_uuid}.json")
+    if not os.path.exists(data_path):
+        flash('Session not found.')
+        return redirect(url_for('head_dashboard'))
+
+    with open(data_path) as f:
+        data = json.load(f)
+
+    results, start_date, end_date, params = deserialize_results(data)
+
+    emp_result = None
+    for r in results:
+        if r['emp_code'] == emp_code:
+            emp_result = r
+            break
+
+    if not emp_result:
+        flash('Employee not found in this session.')
+        return redirect(url_for('head_dashboard'))
+
+    justs = db.execute('''
+        SELECT * FROM justifications
+        WHERE session_uuid = ? AND emp_code = ?
+        ORDER BY anomaly_date
+    ''', (session_uuid, emp_code)).fetchall()
+
+    just_map = {j['anomaly_date']: dict(j) for j in justs}
+
+    holidays = get_holidays_for_range(start_date, end_date)
+    holiday_names = get_holiday_names(start_date, end_date)
+
+    return render_template('head_employee_detail.html',
+                           emp=emp_result, start_date=start_date,
+                           end_date=end_date, params=params,
+                           holidays=sorted(holidays),
+                           holiday_names=holiday_names,
+                           session_uuid=session_uuid,
+                           just_map=just_map)
 
 
 @app.route('/head/review/<session_uuid>')

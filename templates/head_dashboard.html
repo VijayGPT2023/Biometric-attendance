@@ -18,33 +18,77 @@
         }
         .navbar .nav-links a:hover { background: rgba(255,255,255,0.2); }
         .navbar .user-info { font-size: 0.85rem; opacity: 0.9; }
-        .container { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
-        .card {
-            background: #fff; border-radius: 12px; padding: 24px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px;
-        }
-        .card h2 { font-size: 1.1rem; margin-bottom: 16px; border-bottom: 2px solid #f57c00; padding-bottom: 8px; }
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
         .flash { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 12px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
-        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
-        tr:hover td { background: #f8f8ff; }
-        .btn { padding: 6px 16px; border: none; border-radius: 5px; font-size: 0.82rem; cursor: pointer; font-weight: 600; color: #fff; }
-        .btn-orange { background: #f57c00; }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
-        .badge-pending { background: #1976d2; }
-        .badge-decided { background: #43a047; }
-        .badge-query { background: #f57c00; }
-        .dept-tags span {
-            display: inline-block; background: #fff3e0; color: #e65100; padding: 3px 10px;
-            border-radius: 4px; font-size: 0.8rem; margin: 2px 4px;
+
+        .info-bar {
+            display: flex; flex-wrap: wrap; gap: 20px; background: #fff8e1; border: 1px solid #ffe082;
+            padding: 14px 20px; border-radius: 10px; margin-bottom: 20px; font-size: 0.88rem;
+            align-items: center; justify-content: space-between;
         }
+        .info-bar .left { display: flex; flex-wrap: wrap; gap: 20px; }
+        .info-bar strong { color: #f57c00; }
+        .info-bar .btn {
+            padding: 8px 20px; border: none; border-radius: 6px; font-size: 0.85rem;
+            cursor: pointer; font-weight: 600; color: #fff; background: #f57c00; text-decoration: none;
+        }
+        .info-bar .btn:hover { background: #e65100; }
+
+        .dept-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+        .dept-tags span {
+            display: inline-block; background: #fff3e0; color: #e65100; padding: 4px 12px;
+            border-radius: 5px; font-size: 0.82rem; font-weight: 600;
+        }
+        .dept-chip {
+            cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+        }
+        .dept-chip:hover { background: #ffe0b2; border-color: #fff; transform: translateY(-1px); }
+        .dept-chip.active { background: #fff; color: #e65100; border-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+
+        .dept-section { margin-bottom: 28px; }
+        .dept-header {
+            background: #fff; padding: 14px 20px; border-radius: 10px 10px 0 0;
+            border-bottom: 3px solid #f57c00;
+        }
+        .dept-header h2 { font-size: 1.05rem; }
+        .dept-header .count { color: #888; font-size: 0.85rem; font-weight: 400; }
+
+        .consolidated-table {
+            width: 100%; border-collapse: collapse; font-size: 0.82rem; background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-radius: 0 0 10px 10px; overflow: hidden;
+        }
+        .consolidated-table th {
+            background: #f5f5f5; color: #555; padding: 10px 8px; text-align: center;
+            font-weight: 600; font-size: 0.78rem; white-space: nowrap; border-bottom: 1px solid #e0e0e0;
+        }
+        .consolidated-table td {
+            padding: 8px; text-align: center; border-bottom: 1px solid #f0f0f0;
+        }
+        .consolidated-table tr:hover td { background: #fff8f0; }
+        .consolidated-table td:nth-child(1),
+        .consolidated-table td:nth-child(2),
+        .consolidated-table td:nth-child(3) { text-align: left; }
+        .text-danger { color: #c62828; font-weight: 700; }
+        .text-success { color: #2e7d32; font-weight: 700; }
+        .text-warn { color: #e65100; font-weight: 600; }
+
+        .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 0.68rem; font-weight: 600; color: #fff; }
+        .badge-pending { background: #bdbdbd; }
+        .badge-submitted { background: #1976d2; }
+        .badge-query { background: #f57c00; }
+        .badge-accepted { background: #43a047; }
+        .badge-declined { background: #c62828; }
+
+        .status-pills { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+
         .welcome-box {
             background: linear-gradient(135deg, #f57c00, #e65100);
-            color: #fff; padding: 20px 28px; border-radius: 12px; margin-bottom: 24px;
+            color: #fff; padding: 20px 28px; border-radius: 12px; margin-bottom: 20px;
         }
         .welcome-box h2 { color: #fff; border: none; margin-bottom: 4px; font-size: 1.2rem; }
         .welcome-box p { opacity: 0.9; font-size: 0.9rem; }
+
+        .no-data { background: #fff; padding: 40px; text-align: center; border-radius: 12px; color: #888; font-size: 0.95rem; }
     </style>
 </head>
 <body>
@@ -68,50 +112,114 @@
 
         <div class="welcome-box">
             <h2>Welcome, {{ session.user_name }}</h2>
-            <p>Review employee justifications for your departments.</p>
+            <p>Review employee attendance and justifications for your departments.</p>
             {% if managed_depts %}
-            <div style="margin-top: 8px;">
-                <strong style="font-size: 0.85rem;">Your Departments:</strong>
-                <div class="dept-tags" style="margin-top: 4px;">
+            <div class="dept-tags" style="margin-top: 8px;">
+                {% if managed_depts|length > 3 %}
+                    {% for d in managed_depts %}
+                    <span class="dept-chip {% if active_dept == d %}active{% endif %}"
+                          onclick="window.location='/head?dept={{ d }}'">{{ d }}</span>
+                    {% endfor %}
+                {% else %}
                     {% for d in managed_depts %}<span>{{ d }}</span>{% endfor %}
-                </div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
 
-        <div class="card">
-            <h2>Attendance Sessions</h2>
-            {% if sessions_data %}
-            <table>
+        {% if pick_dept is defined and pick_dept %}
+        <div class="info-bar">
+            <div class="left">
+                <div>Period: <strong>{{ start_date.strftime('%d-%b-%Y') }}</strong> to <strong>{{ end_date.strftime('%d-%b-%Y') }}</strong></div>
+                <div>Late After: <strong>{{ params.late_time }}</strong></div>
+                <div>Early Before: <strong>{{ params.early_time }}</strong></div>
+                <div>Min Hours: <strong>{{ params.min_hours }}</strong></div>
+                <div>Allowed: <strong>{{ params.allowed_anomalies }}</strong></div>
+            </div>
+        </div>
+        <div class="no-data" style="margin-top: 8px;">
+            Select a department above to view employee attendance summary.
+        </div>
+
+        {% elif session_uuid and dept_groups %}
+        <div class="info-bar">
+            <div class="left">
+                <div>Period: <strong>{{ start_date.strftime('%d-%b-%Y') }}</strong> to <strong>{{ end_date.strftime('%d-%b-%Y') }}</strong></div>
+                <div>Late After: <strong>{{ params.late_time }}</strong></div>
+                <div>Early Before: <strong>{{ params.early_time }}</strong></div>
+                <div>Min Hours: <strong>{{ params.min_hours }}</strong></div>
+                <div>Allowed: <strong>{{ params.allowed_anomalies }}</strong></div>
+            </div>
+            <a href="/head/review/{{ session_uuid }}" class="btn">Review Justifications</a>
+        </div>
+
+        {% for dept_name, dept_results in dept_groups.items() %}
+        <div class="dept-section">
+            <div class="dept-header">
+                <h2>{{ dept_name }} <span class="count">({{ dept_results|length }} employees)</span></h2>
+            </div>
+            <table class="consolidated-table">
                 <thead>
                     <tr>
-                        <th>Period</th>
-                        <th>Employees</th>
-                        <th>Pending Review</th>
-                        <th>Queried</th>
-                        <th>Decided</th>
-                        <th>Total</th>
-                        <th>Action</th>
+                        <th>Code</th>
+                        <th>Employee Name</th>
+                        <th>Designation</th>
+                        <th>W.Days</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Late</th>
+                        <th>Early</th>
+                        <th>Short Hrs</th>
+                        <th>Miss Dep.</th>
+                        <th>Miss Arr.</th>
+                        <th>Anomalies</th>
+                        <th>Effective</th>
+                        <th>Leave Ded.</th>
+                        <th>Justification Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for s in sessions_data %}
-                    <tr>
-                        <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
-                        <td>{{ s.emp_count }}</td>
-                        <td>{% if s.pending_review %}<span class="badge badge-pending">{{ s.pending_review }}</span>{% else %}0{% endif %}</td>
-                        <td>{% if s.query_pending %}<span class="badge badge-query">{{ s.query_pending }}</span>{% else %}0{% endif %}</td>
-                        <td>{% if s.decided %}<span class="badge badge-decided">{{ s.decided }}</span>{% else %}0{% endif %}</td>
-                        <td>{{ s.total }}</td>
-                        <td><a href="/head/review/{{ s.session_uuid }}" class="btn btn-orange">Review</a></td>
+                    {% for r in dept_results %}
+                    {% set js = just_summary.get(r.emp_code, {}) %}
+                    <tr style="cursor:pointer;" onclick="window.location='/head/employee/{{ session_uuid }}/{{ r.emp_code }}'">
+                        <td>{{ r.emp_code }}</td>
+                        <td><strong>{{ r.emp_name }}</strong></td>
+                        <td>{{ r.designation }}</td>
+                        <td>{{ r.working_days }}</td>
+                        <td>{{ r.present }}</td>
+                        <td>{{ r.absent }}</td>
+                        <td class="{% if r.late_arrival_count > 0 %}text-warn{% endif %}">{{ r.late_arrival_count }}</td>
+                        <td class="{% if r.early_departure_count > 0 %}text-warn{% endif %}">{{ r.early_departure_count }}</td>
+                        <td class="{% if r.short_hours_count > 0 %}text-warn{% endif %}">{{ r.short_hours_count }}</td>
+                        <td>{{ r.missing_departure_count }}</td>
+                        <td>{{ r.missing_arrival_count }}</td>
+                        <td>{{ r.total_anomaly_dates_raw }}</td>
+                        <td class="{% if r.effective_anomaly_count > r.allowed_anomalies %}text-danger{% endif %}">
+                            {{ r.effective_anomaly_count }}
+                        </td>
+                        <td class="{% if r.leave_deduction > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ r.leave_deduction }}
+                        </td>
+                        <td>
+                            <div class="status-pills">
+                                {% if js.get('pending', 0) > 0 %}<span class="badge badge-pending" title="Pending">{{ js.pending }}P</span>{% endif %}
+                                {% if js.get('submitted', 0) > 0 %}<span class="badge badge-submitted" title="Submitted">{{ js.submitted }}S</span>{% endif %}
+                                {% if js.get('query', 0) > 0 %}<span class="badge badge-query" title="Queried">{{ js.query }}Q</span>{% endif %}
+                                {% if js.get('accepted', 0) > 0 %}<span class="badge badge-accepted" title="Accepted">{{ js.accepted }}A</span>{% endif %}
+                                {% if js.get('declined', 0) > 0 %}<span class="badge badge-declined" title="Declined">{{ js.declined }}D</span>{% endif %}
+                                {% if not js %}<span style="color:#bbb; font-size:0.75rem;">-</span>{% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p style="color: #888; padding: 16px 0;">No attendance data available for your departments yet.</p>
-            {% endif %}
         </div>
+        {% endfor %}
+
+        {% else %}
+        <div class="no-data">No attendance data available yet. Please wait for Admin to upload biometric data.</div>
+        {% endif %}
     </div>
 </body>
 </html>
