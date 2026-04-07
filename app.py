@@ -1437,7 +1437,8 @@ def admin_edit_user(user_id):
 
     db = get_db()
     if password:
-        db.execute('UPDATE users SET name=?, role=?, password_hash=?, is_active=? WHERE id=?',
+        # When admin sets a new password, force user to change it on next login
+        db.execute('UPDATE users SET name=?, role=?, password_hash=?, is_active=?, must_change_password=1 WHERE id=?',
                    (name, role, generate_password_hash(password), is_active, user_id))
     else:
         db.execute('UPDATE users SET name=?, role=?, is_active=? WHERE id=?',
@@ -1451,6 +1452,26 @@ def admin_edit_user(user_id):
                        (user_id, int(did)))
     db.commit()
     flash('User updated successfully.')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/reset-password/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def admin_reset_password(user_id):
+    """Reset user password to default and force change on next login."""
+    db = get_db()
+    user = db.execute('SELECT name, username FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user:
+        flash('User not found.')
+        return redirect(url_for('admin_users'))
+
+    default_pw = 'npc123'
+    db.execute('''UPDATE users SET password_hash = ?, must_change_password = 1,
+                  active_session_id = '', last_activity = '' WHERE id = ?''',
+               (generate_password_hash(default_pw), user_id))
+    db.commit()
+    flash(f'Password reset for {user["name"]} ({user["username"]}). '
+          f'New password: {default_pw} (user will be forced to change on next login)')
     return redirect(url_for('admin_users'))
 
 

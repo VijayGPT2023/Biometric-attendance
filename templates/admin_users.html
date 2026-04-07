@@ -165,6 +165,10 @@
                         <td>
                             <button class="btn btn-sm btn-orange" onclick="toggleEdit('edit_{{ u.id }}')">Edit</button>
                             {% if u.emp_code != 'admin' %}
+                            <form action="/admin/users/reset-password/{{ u.id }}" method="post" style="display:inline;"
+                                  onsubmit="return confirm('Reset password for {{ u.name }}? Password will be set to npc123 and user will be forced to change it on next login.')">
+                                <button type="submit" class="btn btn-sm btn-green" title="Reset to npc123">Reset PW</button>
+                            </form>
                             <form action="/admin/users/delete/{{ u.id }}" method="post" style="display:inline;"
                                   onsubmit="return confirm('Delete user {{ u.name }}?')">
                                 <button type="submit" class="btn btn-sm btn-red">Delete</button>
