@@ -4,4 +4,7 @@ uploads/
 data/
 *.xls
 *.xlsx
+*.db
+*.pdf
+cookies.txt
 .env

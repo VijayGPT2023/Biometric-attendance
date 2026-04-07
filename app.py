@@ -11,10 +11,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 
 app = Flask(__name__)
-app.secret_key = 'biometric-attendance-secret-key-2025'
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
-app.config['DATA_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data')
-app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'biometric.db')
+app.secret_key = os.environ.get('SECRET_KEY', 'biometric-attendance-secret-key-2025')
+
+# Use RAILWAY_VOLUME_MOUNT_PATH for persistent storage on Railway, else local
+PERSIST_DIR = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', os.path.dirname(__file__))
+app.config['UPLOAD_FOLDER'] = os.path.join(PERSIST_DIR, 'uploads')
+app.config['DATA_FOLDER'] = os.path.join(PERSIST_DIR, 'data')
+app.config['DATABASE'] = os.path.join(PERSIST_DIR, 'biometric.db')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
