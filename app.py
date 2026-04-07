@@ -137,6 +137,16 @@ def init_db():
             UNIQUE(session_uuid, emp_code, anomaly_date)
         );
     ''')
+    # Migrate: add columns if missing (for DBs created by older versions)
+    existing_cols = [r[1] for r in db.execute('PRAGMA table_info(users)').fetchall()]
+    for col, typedef in [('must_change_password', 'INTEGER DEFAULT 1'),
+                          ('active_session_id', "TEXT DEFAULT ''"),
+                          ('last_activity', "TEXT DEFAULT ''"),
+                          ('username', "TEXT DEFAULT ''")]:
+        if col not in existing_cols:
+            db.execute(f'ALTER TABLE users ADD COLUMN {col} {typedef}')
+    db.commit()
+
     # Create default admin user if not exists
     existing = db.execute('SELECT id FROM users WHERE emp_code = ?', ('admin',)).fetchone()
     if not existing:
@@ -1045,10 +1055,10 @@ def login():
             (login_id, login_id)).fetchone()
         if user and check_password_hash(user['password_hash'], password):
             # Check concurrent login
-            existing_session = user['active_session_id']
+            existing_session = user['active_session_id'] if 'active_session_id' in user.keys() else ''
             if existing_session and existing_session != '':
                 # Check if the existing session is still active (not timed out)
-                last_act = user['last_activity'] or ''
+                last_act = (user['last_activity'] if 'last_activity' in user.keys() else '') or ''
                 if last_act:
                     try:
                         last_dt = datetime.fromisoformat(last_act)
@@ -1068,7 +1078,7 @@ def login():
             session['role'] = user['role']
             session['session_token'] = new_session_id
             session['last_activity'] = datetime.now().isoformat()
-            session['must_change_password'] = bool(user['must_change_password'])
+            session['must_change_password'] = bool(user['must_change_password']) if 'must_change_password' in user.keys() else False
 
             # Store active session in DB
             db.execute('UPDATE users SET active_session_id = ?, last_activity = ? WHERE id = ?',
@@ -1839,11 +1849,11 @@ def head_submit(session_uuid):
 
                 db.execute('''
                     UPDATE justifications
-                    SET status = ?, head_action = ?, head_remark = ?,
+                    SET status = ?, head_remark = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE session_uuid = ? AND emp_code = ? AND anomaly_date = ?
                           AND status IN ('submitted', 'resubmitted', 'query')
-                ''', (new_status, value, head_remark,
+                ''', (new_status, head_remark,
                       session_uuid, emp_code, anomaly_date))
     db.commit()
     flash('Decisions submitted successfully.')
