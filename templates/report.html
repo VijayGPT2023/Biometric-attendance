@@ -96,21 +96,65 @@
         .detail-inner h4 { margin: 8px 0 4px; color: #667eea; font-size: 0.82rem; }
 
         .print-btn {
-            position: fixed; bottom: 24px; right: 24px; padding: 12px 24px;
+            position: fixed; bottom: 24px; right: 24px;
+            z-index: 100;
+        }
+        .print-menu-btn {
+            padding: 12px 24px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer;
-            box-shadow: 0 4px 16px rgba(102,126,234,0.4); z-index: 100;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.4);
         }
+        .print-dropdown {
+            position: absolute; bottom: 52px; right: 0; background: #fff; border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18); min-width: 280px; display: none;
+            overflow: hidden;
+        }
+        .print-dropdown.open { display: block; }
+        .print-dropdown-item {
+            display: block; width: 100%; padding: 12px 20px; border: none; background: none;
+            text-align: left; cursor: pointer; font-size: 0.88rem; color: #333;
+            border-bottom: 1px solid #f0f0f0; transition: background 0.15s;
+        }
+        .print-dropdown-item:last-child { border-bottom: none; }
+        .print-dropdown-item:hover { background: #f0f2ff; }
+        .print-dropdown-item small { display: block; color: #888; font-size: 0.75rem; margin-top: 2px; }
+
+        .print-group-submenu {
+            max-height: 240px; overflow-y: auto; border-top: 1px solid #e0e0e0;
+        }
+        .print-group-submenu .print-dropdown-item { padding-left: 32px; font-size: 0.82rem; }
+
         .permitted-tag {
             display: inline-block; background: #c8e6c9; color: #2e7d32; padding: 1px 6px;
             border-radius: 3px; font-size: 0.7rem; margin-left: 4px;
         }
+
+        /* Summary report section - hidden on screen by default */
+        .summary-report { display: none; }
+
         @media print {
             body { background: #fff; padding: 10px; }
             .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .btn-bar, .print-btn, .dept-actions, .detail-toggle { display: none !important; }
-            .emp-details { display: table-row !important; }
+            .btn-bar, .print-btn, .dept-actions, .detail-toggle, .stage-banner { display: none !important; }
             .dept-section { break-inside: avoid; }
+
+            /* Summary print mode */
+            body.print-summary .dept-section { display: none !important; }
+            body.print-summary .summary-report { display: block !important; }
+            body.print-summary .summary-report table { page-break-inside: auto; }
+            body.print-summary .summary-report tr { page-break-inside: avoid; }
+
+            /* Detailed print mode (all departments) */
+            body.print-detailed .summary-report { display: none !important; }
+            body.print-detailed .dept-section { display: block !important; }
+            body.print-detailed .emp-details { display: table-row !important; }
+
+            /* Group-wise detailed print mode (single department) */
+            body.print-group .summary-report { display: none !important; }
+            body.print-group .dept-section { display: none !important; }
+            body.print-group .dept-section.print-active { display: block !important; }
+            body.print-group .dept-section.print-active .emp-details { display: table-row !important; }
         }
     </style>
 </head>
@@ -129,7 +173,6 @@
             <a href="/hod-review/{{ session_id }}" class="btn-link btn-orange">HoD Review &amp; Mark Permitted Days</a>
             {% endif %}
             <a href="/" class="btn-link btn-white">Upload Another File</a>
-            <button onclick="window.print()" class="btn-link btn-white">Print</button>
         </div>
     </div>
 
@@ -262,11 +305,156 @@
     </div>
     {% endfor %}
 
-    <button class="print-btn" onclick="window.print()">Print Report</button>
+    <!-- ============ SUMMARY REPORT (printed only in summary mode) ============ -->
+    <div class="summary-report">
+        <h2 style="text-align:center; margin-bottom: 4px; font-size: 1.2rem;">Attendance Summary Report</h2>
+        <p style="text-align:center; color: #666; font-size: 0.85rem; margin-bottom: 16px;">
+            Period: {{ start_date.strftime('%d-%b-%Y') }} to {{ end_date.strftime('%d-%b-%Y') }}
+            &nbsp;|&nbsp; Employees: {{ results|length }}
+            &nbsp;|&nbsp; Departments: {{ dept_groups|length }}
+        </p>
+        {% for dept_name_s, dept_results_s in dept_groups.items() %}
+        <div style="margin-bottom: 16px; page-break-inside: avoid;">
+            <h3 style="font-size: 0.95rem; background: #f0f0f0; padding: 6px 12px; margin-bottom: 0; border: 1px solid #ccc; border-bottom: none;">
+                {{ dept_name_s }} <span style="color: #888; font-weight: 400; font-size: 0.82rem;">({{ dept_results_s|length }} employees)</span>
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+                <thead>
+                    <tr style="background: #f5f5f5;">
+                        <th style="border: 1px solid #ccc; padding: 5px 6px; text-align: left;">Code</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px; text-align: left;">Employee Name</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px; text-align: left;">Designation</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">W.Days</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Present</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Absent</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">On Hol.</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Late</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Early</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Short</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">M.Dep</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">M.Arr</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Anom.</th>
+                        {% if stage == 'final' %}<th style="border: 1px solid #ccc; padding: 5px 6px;">Perm.</th>{% endif %}
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Eff.</th>
+                        <th style="border: 1px solid #ccc; padding: 5px 6px;">Leave</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in dept_results_s %}
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: left;">{{ r.emp_code }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: left;">{{ r.emp_name }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: left;">{{ r.designation }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.working_days }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.present }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.absent }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.present_on_holidays }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;{% if r.late_arrival_count > 0 %} color:#c62828; font-weight:700;{% endif %}">{{ r.late_arrival_count }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;{% if r.early_departure_count > 0 %} color:#c62828; font-weight:700;{% endif %}">{{ r.early_departure_count }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;{% if r.short_hours_count > 0 %} color:#c62828; font-weight:700;{% endif %}">{{ r.short_hours_count }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.missing_departure_count }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.missing_arrival_count }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;">{{ r.total_anomaly_dates_raw }}</td>
+                        {% if stage == 'final' %}<td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center; color:#2e7d32;">{{ r.permitted_count }}</td>{% endif %}
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;{% if r.effective_anomaly_count > r.allowed_anomalies %} color:#c62828; font-weight:700;{% endif %}">{{ r.effective_anomaly_count }}</td>
+                        <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: center;{% if r.leave_deduction > 0 %} color:#c62828; font-weight:700;{% else %} color:#2e7d32; font-weight:700;{% endif %}">{{ r.leave_deduction }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ============ PRINT MENU (floating) ============ -->
+    <div class="print-btn" id="printMenuWrapper">
+        <div class="print-dropdown" id="printDropdown">
+            <button class="print-dropdown-item" onclick="printSummary()">
+                Summary Report
+                <small>One row per employee, grouped by department</small>
+            </button>
+            <button class="print-dropdown-item" onclick="printDetailed()">
+                Detailed Report (All Departments)
+                <small>All employees with day-wise anomaly details</small>
+            </button>
+            <button class="print-dropdown-item" onclick="toggleGroupSubmenu()" id="groupPrintBtn">
+                Group-wise Detailed Report ▾
+                <small>Select a department to print its detailed report</small>
+            </button>
+            <div class="print-group-submenu" id="groupSubmenu" style="display:none;">
+                {% for dept_name_m in dept_groups.keys() %}
+                <button class="print-dropdown-item" onclick="printGroup('{{ dept_name_m }}')">
+                    {{ dept_name_m }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        <button class="print-menu-btn" onclick="togglePrintMenu(event)">Print Report ▲</button>
+    </div>
 
     <script>
         function toggleDetails(id) {
             document.getElementById(id).classList.toggle('open');
+        }
+
+        function togglePrintMenu(e) {
+            e.stopPropagation();
+            document.getElementById('printDropdown').classList.toggle('open');
+            // close group submenu when toggling main menu
+            document.getElementById('groupSubmenu').style.display = 'none';
+        }
+
+        function toggleGroupSubmenu() {
+            var sub = document.getElementById('groupSubmenu');
+            sub.style.display = sub.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Close menu on outside click
+        document.addEventListener('click', function(e) {
+            var wrapper = document.getElementById('printMenuWrapper');
+            if (!wrapper.contains(e.target)) {
+                document.getElementById('printDropdown').classList.remove('open');
+                document.getElementById('groupSubmenu').style.display = 'none';
+            }
+        });
+
+        function printSummary() {
+            document.body.className = 'print-summary';
+            document.getElementById('printDropdown').classList.remove('open');
+            setTimeout(function() { window.print(); }, 100);
+            window.onafterprint = function() { document.body.className = ''; };
+        }
+
+        function printDetailed() {
+            document.body.className = 'print-detailed';
+            document.getElementById('printDropdown').classList.remove('open');
+            setTimeout(function() { window.print(); }, 100);
+            window.onafterprint = function() { document.body.className = ''; };
+        }
+
+        function printGroup(deptName) {
+            // Remove print-active from all dept sections
+            var sections = document.querySelectorAll('.dept-section');
+            sections.forEach(function(s) { s.classList.remove('print-active'); });
+
+            // Find and activate the matching dept section
+            sections.forEach(function(s) {
+                var header = s.querySelector('.dept-header h2');
+                if (header && header.textContent.trim().indexOf(deptName) === 0) {
+                    s.classList.add('print-active');
+                }
+            });
+
+            document.body.className = 'print-group';
+            document.getElementById('printDropdown').classList.remove('open');
+            document.getElementById('groupSubmenu').style.display = 'none';
+            setTimeout(function() { window.print(); }, 100);
+            window.onafterprint = function() {
+                document.body.className = '';
+                document.querySelectorAll('.dept-section').forEach(function(s) {
+                    s.classList.remove('print-active');
+                });
+            };
         }
     </script>
 </body>

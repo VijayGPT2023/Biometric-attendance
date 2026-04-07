@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Justifications - Biometric Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .navbar {
+            background: linear-gradient(135deg, #f57c00, #e65100);
+            color: #fff; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 1.2rem; }
+        .navbar .nav-links a {
+            color: rgba(255,255,255,0.85); text-decoration: none; margin-left: 18px; font-size: 0.88rem;
+            padding: 6px 12px; border-radius: 5px;
+        }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.2); }
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+        .flash { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 12px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem; }
+        .info-bar {
+            display: flex; flex-wrap: wrap; gap: 20px; background: #fff8e1; border: 1px solid #ffe082;
+            padding: 14px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 0.88rem;
+        }
+        .info-bar strong { color: #f57c00; }
+
+        .dept-section { margin-bottom: 28px; }
+        .dept-header {
+            background: #fff; padding: 14px 20px; border-radius: 10px 10px 0 0;
+            border-bottom: 3px solid #f57c00; display: flex; justify-content: space-between; align-items: center;
+        }
+        .dept-header h2 { font-size: 1.1rem; }
+        .dept-header .count { color: #888; font-size: 0.85rem; font-weight: 400; }
+
+        .emp-card {
+            background: #fff; padding: 16px 20px; margin-bottom: 2px;
+            border-left: 3px solid #f57c00;
+        }
+        .emp-card:last-child { border-radius: 0 0 10px 10px; }
+        .emp-info { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.88rem; }
+        .emp-info strong { color: #333; }
+        .emp-info .detail { color: #666; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th { background: #fff8e1; padding: 8px; text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #e0e0e0; }
+        td { padding: 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+        tr:hover td { background: #fffbf0; }
+
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+        .badge-pending { background: #bdbdbd; }
+        .badge-submitted { background: #1976d2; }
+        .badge-query { background: #f57c00; }
+        .badge-accepted { background: #43a047; }
+        .badge-declined { background: #c62828; }
+
+        select { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.82rem; }
+        select:focus { outline: none; border-color: #f57c00; }
+        textarea {
+            width: 100%; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 0.8rem; font-family: inherit; min-height: 36px; resize: vertical;
+        }
+        .justification-text { background: #e3f2fd; padding: 6px 10px; border-radius: 4px; font-size: 0.82rem; }
+
+        .btn { padding: 10px 28px; border: none; border-radius: 6px; font-size: 0.92rem; cursor: pointer; font-weight: 600; color: #fff; }
+        .btn-orange { background: #f57c00; }
+        .btn-orange:hover { background: #e65100; }
+        .submit-bar {
+            position: sticky; bottom: 0; background: #fff; padding: 14px 24px;
+            border-top: 2px solid #f57c00; text-align: right; box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            border-radius: 0 0 12px 12px;
+        }
+        .bulk-actions { margin-bottom: 10px; }
+        .bulk-actions button {
+            padding: 4px 12px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5;
+            cursor: pointer; font-size: 0.78rem; margin-right: 6px;
+        }
+        .bulk-actions button:hover { background: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Review Employee Justifications</h1>
+        <div class="nav-links">
+            <a href="/head">Dashboard</a>
+            {% if session.role == 'admin' %}<a href="/admin">Admin</a>{% endif %}
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <div class="info-bar">
+            <div>Period: <strong>{{ start_date.strftime('%d-%b-%Y') }}</strong> to <strong>{{ end_date.strftime('%d-%b-%Y') }}</strong></div>
+            <div>Late After: <strong>{{ params.late_time }}</strong></div>
+            <div>Early Before: <strong>{{ params.early_time }}</strong></div>
+            <div>Min Hours: <strong>{{ params.min_hours }}</strong></div>
+        </div>
+
+        <form action="/head/submit/{{ session_uuid }}" method="post">
+            {% for dept_name, dept_results in dept_groups.items() %}
+            <div class="dept-section">
+                <div class="dept-header">
+                    <h2>{{ dept_name }} <span class="count">({{ dept_results|length }} employees)</span></h2>
+                </div>
+
+                {% for r in dept_results %}
+                {% if r.anomaly_details %}
+                <div class="emp-card">
+                    <div class="emp-info">
+                        <div><strong>{{ r.emp_name }}</strong></div>
+                        <div class="detail">Code: {{ r.emp_code }}</div>
+                        <div class="detail">{{ r.designation }}</div>
+                        <div class="detail">Anomalies: <strong style="color:#c62828">{{ r.total_anomaly_dates_raw }}</strong></div>
+                    </div>
+
+                    <div class="bulk-actions">
+                        <button type="button" onclick="bulkAction('{{ r.emp_code }}', 'accepted')">Accept All</button>
+                        <button type="button" onclick="bulkAction('{{ r.emp_code }}', 'declined')">Decline All</button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>Arrival</th>
+                                <th>Departure</th>
+                                <th>Hours</th>
+                                <th>Anomaly</th>
+                                <th>Employee's Justification</th>
+                                <th>Status</th>
+                                <th>Decision</th>
+                                <th>Your Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in r.anomaly_details %}
+                            {% set date_str = d.date.isoformat() %}
+                            {% set j = just_map.get(r.emp_code, {}).get(date_str, {}) %}
+                            <tr>
+                                <td><strong>{{ d.date.strftime('%d-%b') }}</strong></td>
+                                <td>{{ d.date.strftime('%a') }}</td>
+                                <td style="{% if d.arrival_status == 'late' %}color:#c62828;font-weight:700{% elif d.arrival_status == 'missing' %}background:#ffebee;color:#c62828{% endif %}">
+                                    {% if d.arrival_status == 'missing' %}MISSING{% elif d.arrival %}{{ d.arrival }}{% else %}-{% endif %}
+                                </td>
+                                <td style="{% if d.departure_status == 'early' %}color:#c62828;font-weight:700{% elif d.departure_status == 'missing' %}background:#ffebee;color:#c62828{% endif %}">
+                                    {% if d.departure_status == 'missing' %}MISSING{% elif d.departure %}{{ d.departure }}{% else %}-{% endif %}
+                                </td>
+                                <td style="{% if d.hours_status == 'short' %}color:#c62828;font-weight:700{% endif %}">
+                                    {{ d.hours if d.hours else '-' }}
+                                </td>
+                                <td style="font-size:0.76rem;">{{ d.types|join(', ') }}</td>
+                                <td>
+                                    {% if j.get('justification') %}
+                                    <div class="justification-text">{{ j.justification }}</div>
+                                    {% else %}
+                                    <span style="color:#bbb; font-size:0.8rem;">Not yet submitted</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if j.get('status') == 'accepted' %}
+                                        <span class="badge badge-accepted">Accepted</span>
+                                    {% elif j.get('status') == 'declined' %}
+                                        <span class="badge badge-declined">Declined</span>
+                                    {% elif j.get('status') == 'query' %}
+                                        <span class="badge badge-query">Queried</span>
+                                    {% elif j.get('status') == 'submitted' %}
+                                        <span class="badge badge-submitted">Submitted</span>
+                                    {% else %}
+                                        <span class="badge badge-pending">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if j.get('status') in ('submitted', 'resubmitted') %}
+                                    <select name="action_{{ r.emp_code }}_{{ date_str }}" class="action-select" data-emp="{{ r.emp_code }}">
+                                        <option value="">-- Select --</option>
+                                        <option value="accepted">Accept</option>
+                                        <option value="declined">Decline</option>
+                                        <option value="query">Query</option>
+                                    </select>
+                                    {% elif j.get('status') in ('accepted', 'declined') %}
+                                    <span style="font-size:0.8rem; color:#888;">{{ j.status }}</span>
+                                    {% elif j.get('status') == 'query' %}
+                                    <span style="font-size:0.8rem; color:#f57c00;">Waiting response</span>
+                                    {% else %}
+                                    <span style="font-size:0.8rem; color:#bbb;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if j.get('status') in ('submitted', 'resubmitted') %}
+                                    <textarea name="remark_{{ r.emp_code }}_{{ date_str }}" placeholder="Optional remark">{{ j.get('head_remark', '') }}</textarea>
+                                    {% elif j.get('head_remark') %}
+                                    <span style="font-size:0.8rem;">{{ j.head_remark }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="submit-bar">
+                <button type="submit" class="btn btn-orange">Submit All Decisions</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function bulkAction(empCode, action) {
+            var selects = document.querySelectorAll('select.action-select[data-emp="' + empCode + '"]');
+            selects.forEach(function(sel) {
+                for (var i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === action) {
+                        sel.selectedIndex = i;
+                        break;
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

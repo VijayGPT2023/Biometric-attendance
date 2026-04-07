@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Head Dashboard - Biometric Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .navbar {
+            background: linear-gradient(135deg, #f57c00, #e65100);
+            color: #fff; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 1.2rem; }
+        .navbar .nav-links a {
+            color: rgba(255,255,255,0.85); text-decoration: none; margin-left: 18px; font-size: 0.88rem;
+            padding: 6px 12px; border-radius: 5px; transition: background 0.2s;
+        }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.2); }
+        .navbar .user-info { font-size: 0.85rem; opacity: 0.9; }
+        .container { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
+        .card {
+            background: #fff; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px;
+        }
+        .card h2 { font-size: 1.1rem; margin-bottom: 16px; border-bottom: 2px solid #f57c00; padding-bottom: 8px; }
+        .flash { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 12px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #f8f8ff; }
+        .btn { padding: 6px 16px; border: none; border-radius: 5px; font-size: 0.82rem; cursor: pointer; font-weight: 600; color: #fff; }
+        .btn-orange { background: #f57c00; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+        .badge-pending { background: #1976d2; }
+        .badge-decided { background: #43a047; }
+        .badge-query { background: #f57c00; }
+        .dept-tags span {
+            display: inline-block; background: #fff3e0; color: #e65100; padding: 3px 10px;
+            border-radius: 4px; font-size: 0.8rem; margin: 2px 4px;
+        }
+        .welcome-box {
+            background: linear-gradient(135deg, #f57c00, #e65100);
+            color: #fff; padding: 20px 28px; border-radius: 12px; margin-bottom: 24px;
+        }
+        .welcome-box h2 { color: #fff; border: none; margin-bottom: 4px; font-size: 1.2rem; }
+        .welcome-box p { opacity: 0.9; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>
+            <h1>Biometric Attendance - Department Head</h1>
+            <span class="user-info">{{ session.user_name }}</span>
+        </div>
+        <div class="nav-links">
+            <a href="/head">Dashboard</a>
+            {% if session.role == 'admin' %}<a href="/admin">Admin</a>{% endif %}
+            <a href="/change-password">Password</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <div class="welcome-box">
+            <h2>Welcome, {{ session.user_name }}</h2>
+            <p>Review employee justifications for your departments.</p>
+            {% if managed_depts %}
+            <div style="margin-top: 8px;">
+                <strong style="font-size: 0.85rem;">Your Departments:</strong>
+                <div class="dept-tags" style="margin-top: 4px;">
+                    {% for d in managed_depts %}<span>{{ d }}</span>{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>Attendance Sessions</h2>
+            {% if sessions_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Employees</th>
+                        <th>Pending Review</th>
+                        <th>Queried</th>
+                        <th>Decided</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sessions_data %}
+                    <tr>
+                        <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
+                        <td>{{ s.emp_count }}</td>
+                        <td>{% if s.pending_review %}<span class="badge badge-pending">{{ s.pending_review }}</span>{% else %}0{% endif %}</td>
+                        <td>{% if s.query_pending %}<span class="badge badge-query">{{ s.query_pending }}</span>{% else %}0{% endif %}</td>
+                        <td>{% if s.decided %}<span class="badge badge-decided">{{ s.decided }}</span>{% else %}0{% endif %}</td>
+                        <td>{{ s.total }}</td>
+                        <td><a href="/head/review/{{ s.session_uuid }}" class="btn btn-orange">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #888; padding: 16px 0;">No attendance data available for your departments yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

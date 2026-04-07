@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(pip install:*)",
+      "Bash(pip list:*)",
+      "Bash(python app.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/)",
+      "Bash(pkill -f \"python app.py\")",
+      "Bash(gh api:*)",
+      "Bash(gh repo:*)",
+      "Bash(railway version:*)",
+      "Bash(npm install:*)",
+      "Bash(railway --help)",
+      "Bash(railway login:*)",
+      "Bash(railway whoami:*)",
+      "Bash(railway init:*)",
+      "Bash(railway up:*)",
+      "Bash(railway domain:*)",
+      "Bash(railway vars:*)",
+      "Bash(railway service:*)",
+      "Bash(railway list:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://biometric-attendance-production.up.railway.app/)",
+      "Bash(python verify_report.py)",
+      "Bash(grep -E \"\\\\.\\(html|js|css|json\\)$\")",
+      "Bash(timeout 3)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000/)",
+      "Bash(timeout 2)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(python -c \"import app; print\\('Import OK'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000/login)",
+      "Bash(curl -s -c cookies.txt -L -d \"emp_code=admin&password=admin123\" http://localhost:5000/login -o /dev/null -w \"%{http_code} %{redirect_url}\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L -d \"emp_code=admin&password=admin123\" http://localhost:5000/login -w \"\\\\nHTTP_CODE: %{http_code}\")",
+      "Bash(sqlite3 e:/Biometric-attendance/biometric.db \".tables\")",
+      "Bash(sqlite3 e:/Biometric-attendance/biometric.db \"SELECT emp_code, name, role FROM users;\")",
+      "Bash(python -c ':*)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L -d \"username=vijay.kumar&password=npc123\" http://localhost:5000/login -w \"\\\\nHTTP: %{http_code}\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L -d \"username=vijay.kumar&password=npc123\" http://localhost:5000/login)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L -d \"username=admin&password=admin123\" http://localhost:5000/login)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -L -d \"username=dk.rahul&password=npc123\" http://localhost:5000/login)"
+    ]
+  }
+}

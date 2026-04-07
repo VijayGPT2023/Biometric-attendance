@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard - Biometric Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .navbar {
+            background: linear-gradient(135deg, #43a047, #2e7d32);
+            color: #fff; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 1.2rem; }
+        .navbar .nav-links a {
+            color: rgba(255,255,255,0.85); text-decoration: none; margin-left: 18px; font-size: 0.88rem;
+            padding: 6px 12px; border-radius: 5px; transition: background 0.2s;
+        }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.2); }
+        .navbar .user-info { font-size: 0.85rem; opacity: 0.9; }
+        .container { max-width: 900px; margin: 24px auto; padding: 0 20px; }
+        .card {
+            background: #fff; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px;
+        }
+        .card h2 { font-size: 1.1rem; margin-bottom: 16px; border-bottom: 2px solid #43a047; padding-bottom: 8px; }
+        .flash { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 12px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #f8f8ff; }
+        .btn { padding: 6px 16px; border: none; border-radius: 5px; font-size: 0.82rem; cursor: pointer; font-weight: 600; color: #fff; }
+        .btn-green { background: #43a047; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+        .badge-pending { background: #bdbdbd; }
+        .badge-submitted { background: #1976d2; }
+        .badge-query { background: #f57c00; }
+        .badge-accepted { background: #43a047; }
+        .badge-declined { background: #c62828; }
+        .welcome-box {
+            background: linear-gradient(135deg, #43a047, #2e7d32);
+            color: #fff; padding: 20px 28px; border-radius: 12px; margin-bottom: 24px;
+        }
+        .welcome-box h2 { color: #fff; border: none; margin-bottom: 4px; font-size: 1.2rem; }
+        .welcome-box p { opacity: 0.9; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>
+            <h1>Biometric Attendance - Employee</h1>
+            <span class="user-info">{{ session.user_name }} ({{ session.emp_code }})</span>
+        </div>
+        <div class="nav-links">
+            <a href="/employee">Dashboard</a>
+            <a href="/change-password">Password</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <div class="welcome-box">
+            <h2>Welcome, {{ session.user_name }}</h2>
+            <p>View your attendance anomalies and submit justifications to your Department Head.</p>
+        </div>
+
+        <div class="card">
+            <h2>Your Attendance Sessions</h2>
+            {% if session_data %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Anomalies</th>
+                        <th>Pending</th>
+                        <th>Submitted</th>
+                        <th>Query</th>
+                        <th>Accepted</th>
+                        <th>Declined</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in session_data %}
+                    <tr>
+                        <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
+                        <td>{{ s.total }}</td>
+                        <td>{% if s.pending %}<span class="badge badge-pending">{{ s.pending }}</span>{% else %}0{% endif %}</td>
+                        <td>{% if s.submitted %}<span class="badge badge-submitted">{{ s.submitted }}</span>{% else %}0{% endif %}</td>
+                        <td>{% if s.query %}<span class="badge badge-query">{{ s.query }}</span>{% else %}0{% endif %}</td>
+                        <td>{% if s.accepted %}<span class="badge badge-accepted">{{ s.accepted }}</span>{% else %}0{% endif %}</td>
+                        <td>{% if s.declined %}<span class="badge badge-declined">{{ s.declined }}</span>{% else %}0{% endif %}</td>
+                        <td><a href="/employee/report/{{ s.session_uuid }}" class="btn btn-green">View &amp; Justify</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #888; padding: 16px 0;">No attendance data uploaded yet. Please wait for Admin to upload biometric data.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

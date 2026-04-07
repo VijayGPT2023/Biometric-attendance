@@ -2,20 +2,175 @@ import os
 import re
 import json
 import uuid
+import sqlite3
 from datetime import datetime, date, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from functools import wraps
+from flask import (Flask, render_template, request, redirect, url_for,
+                   flash, session, g, jsonify)
+from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = 'biometric-attendance-secret-key-2025'
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
 app.config['DATA_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data')
+app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'biometric.db')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
 
-# ---------- Delhi Central Government Public Holidays ----------
+
+# ================================================================
+#  DEPARTMENT NAME NORMALIZATION
+# ================================================================
+
+DEPT_NAME_MAP = {
+    'AB':                           'AB Group',
+    'AB Group':                     'AB Group',
+    'ADMIN':                        'Admin',
+    'Admin':                        'Admin',
+    'Housekeeping Agency (Admin)':  'Admin',
+    'MTS Agency (Admin)':           'Admin',
+    'DG SECRETRIAT':                'DG Sectt',
+    'DG Sectt':                     'DG Sectt',
+    'EC':                           'ECA Group',
+    'ECA':                          'ECA Group',
+    'ECA Group':                    'ECA Group',
+    'ECAJ':                         'ECA Group',
+    'EN':                           'ECA Group',
+    'EM':                           'EM Group',
+    'EM Group':                     'EM Group',
+    'ES':                           'ES Group',
+    'ES Group':                     'ES Group',
+    'FIN.':                         'Finance',
+    'Finance':                      'Finance',
+    'HQ':                           'HQ',
+    'HRM':                          'HRM Group',
+    'HRM Group':                    'HRM Group',
+    'IE GROUP':                     'IE Group',
+    'IE Group':                     'IE Group',
+    'IS':                           'IS Group',
+    'IS Group':                     'IS Group',
+    'IT':                           'IT Group',
+    'IT Group':                     'IT Group',
+}
+
+
+def normalize_dept(name):
+    """Normalize department name using the mapping."""
+    return DEPT_NAME_MAP.get(name.strip(), name.strip()) if name else 'Unknown'
+
+
+# ================================================================
+#  DATABASE
+# ================================================================
+
+def get_db():
+    if 'db' not in g:
+        g.db = sqlite3.connect(app.config['DATABASE'])
+        g.db.row_factory = sqlite3.Row
+        g.db.execute('PRAGMA foreign_keys = ON')
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    db = sqlite3.connect(app.config['DATABASE'])
+    db.execute('PRAGMA foreign_keys = ON')
+    db.executescript('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            emp_code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'employee',
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS departments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS head_departments (
+            user_id INTEGER NOT NULL,
+            dept_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, dept_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (dept_id) REFERENCES departments(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS upload_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_uuid TEXT UNIQUE NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            params_json TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS justifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_uuid TEXT NOT NULL,
+            emp_code TEXT NOT NULL,
+            anomaly_date TEXT NOT NULL,
+            anomaly_types TEXT DEFAULT '',
+            justification TEXT DEFAULT '',
+            status TEXT DEFAULT 'pending',
+            head_remark TEXT DEFAULT '',
+            admin_remark TEXT DEFAULT '',
+            finalized INTEGER DEFAULT 0,
+            final_decision TEXT DEFAULT '',
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(session_uuid, emp_code, anomaly_date)
+        );
+    ''')
+    # Create default admin user if not exists
+    existing = db.execute('SELECT id FROM users WHERE emp_code = ?', ('admin',)).fetchone()
+    if not existing:
+        db.execute(
+            'INSERT INTO users (emp_code, name, password_hash, role) VALUES (?, ?, ?, ?)',
+            ('admin', 'Administrator', generate_password_hash('admin123'), 'admin'))
+        db.commit()
+    db.close()
+
+
+# ================================================================
+#  AUTH DECORATORS
+# ================================================================
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def role_required(*roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if 'user_id' not in session:
+                return redirect(url_for('login'))
+            if session.get('role') not in roles:
+                flash('Access denied.')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
+
+
+# ================================================================
+#  DELHI CENTRAL GOVERNMENT PUBLIC HOLIDAYS
+# ================================================================
+
 DELHI_CG_HOLIDAYS = {
     2024: [
         date(2024, 1, 26), date(2024, 3, 8), date(2024, 3, 25),
@@ -77,7 +232,9 @@ HOLIDAY_NAMES = {
 }
 
 
-# ---------- Utility functions ----------
+# ================================================================
+#  UTILITY FUNCTIONS
+# ================================================================
 
 def get_holidays_for_range(start_date, end_date):
     holidays = set()
@@ -113,14 +270,15 @@ def time_to_minutes(h, m):
     return h * 60 + m
 
 
-# ---------- XLS Parser ----------
+# ================================================================
+#  XLS PARSER
+# ================================================================
 
 def parse_biometric_xls(filepath):
     ext = os.path.splitext(filepath)[1].lower()
     engine = 'xlrd' if ext == '.xls' else 'openpyxl'
     df = pd.read_excel(filepath, header=None, engine=engine)
 
-    # Extract report date range
     report_info = str(df.iloc[0, 2]) if not pd.isna(df.iloc[0, 2]) else ''
     date_match = re.search(r'(\d{2}-\d{2}-\d{4})\s+To\s+:\s+(\d{2}-\d{2}-\d{4})', report_info)
     if date_match:
@@ -138,11 +296,7 @@ def parse_biometric_xls(filepath):
         row = df.iloc[row_idx]
         col1 = str(row.iloc[1]).strip() if not pd.isna(row.iloc[1]) else ''
 
-        # Detect Department / Designation row (appears just before EmpCode row)
-        # Old format: "Department  : AB Group" (col1) + "Desig : Dy. Director" (col20)
-        # New format: "Dept:-AB" (col1) + "Desig : MTS" (col15)
         if col1.startswith('Department') or (col1.startswith('Dept:') and col1 != 'Dept.Time' and 'Dept.Time' not in col1):
-            # Extract department name
             if ':-' in col1:
                 current_dept = col1.split(':-', 1)[1].strip()
             elif ':' in col1:
@@ -150,7 +304,6 @@ def parse_biometric_xls(filepath):
             else:
                 current_dept = col1
 
-            # Extract designation - check col20 first (old format), then col15 (new format)
             current_desig = ''
             for desig_col in [20, 15]:
                 if desig_col < len(row):
@@ -161,7 +314,6 @@ def parse_biometric_xls(filepath):
             row_idx += 1
             continue
 
-        # Detect EmpCode header row
         if col1 == 'EmpCode':
             emp_row = df.iloc[row_idx + 1] if row_idx + 1 < len(df) else None
             if emp_row is None:
@@ -181,7 +333,6 @@ def parse_biometric_xls(filepath):
                 row_idx += 1
                 continue
 
-            # Build day-column mapping
             day_col_map = {}
             for col_idx in range(len(day_row)):
                 val = day_row.iloc[col_idx]
@@ -193,17 +344,14 @@ def parse_biometric_xls(filepath):
                     except (ValueError, TypeError):
                         pass
 
-            # Extract daily data
             daily_data = {}
             for day_num, col_idx in day_col_map.items():
-                # Handle multi-month reports
                 if start_date.month == end_date.month:
                     try:
                         d = date(start_date.year, start_date.month, day_num)
                     except ValueError:
                         continue
                 else:
-                    # For multi-month, try to figure out which month
                     d = None
                     for m in range(start_date.month, end_date.month + 1):
                         try:
@@ -220,7 +368,6 @@ def parse_biometric_xls(filepath):
                     continue
 
                 raw_status = str(status_row.iloc[col_idx]).strip() if not pd.isna(status_row.iloc[col_idx]) else ''
-                # Normalize status: P-LT (present-late) and POW (present on weekend/off) → P
                 status = raw_status
                 if raw_status in ('P-LT', 'POW'):
                     status = 'P'
@@ -237,7 +384,6 @@ def parse_biometric_xls(filepath):
                     'working_hrs': working_hrs,
                 }
 
-            # Filter out entries with no real name
             name_clean = emp_name.strip().lower()
             is_valid = (
                 name_clean
@@ -249,7 +395,7 @@ def parse_biometric_xls(filepath):
                 employees.append({
                     'emp_code': emp_code,
                     'emp_name': emp_name,
-                    'department': current_dept,
+                    'department': normalize_dept(current_dept),
                     'designation': current_desig,
                     'daily_data': daily_data,
                 })
@@ -262,20 +408,13 @@ def parse_biometric_xls(filepath):
 
 
 def merge_multi_month(file_results):
-    """Merge employees from multiple monthly files into a single dataset.
-
-    file_results: list of (employees, start_date, end_date) from parse_biometric_xls
-    Returns: (merged_employees, overall_start_date, overall_end_date)
-    """
     if len(file_results) == 1:
         return file_results[0]
 
-    # Overall date range
     overall_start = min(r[1] for r in file_results)
     overall_end = max(r[2] for r in file_results)
 
-    # Merge employees by emp_code
-    emp_map = {}  # emp_code -> merged employee dict
+    emp_map = {}
     for employees, _, _ in file_results:
         for emp in employees:
             code = emp['emp_code']
@@ -288,7 +427,6 @@ def merge_multi_month(file_results):
                     'daily_data': {},
                 }
             else:
-                # Update name/dept/desig if current is more complete
                 if emp['department'] and not emp_map[code]['department']:
                     emp_map[code]['department'] = emp['department']
                 if emp['designation'] and not emp_map[code]['designation']:
@@ -296,17 +434,17 @@ def merge_multi_month(file_results):
                 if len(emp['emp_name']) > len(emp_map[code]['emp_name']):
                     emp_map[code]['emp_name'] = emp['emp_name']
 
-            # Merge daily data (later file overwrites if same date exists)
             emp_map[code]['daily_data'].update(emp['daily_data'])
 
     return list(emp_map.values()), overall_start, overall_end
 
 
-# ---------- Employee analysis ----------
+# ================================================================
+#  EMPLOYEE ANALYSIS
+# ================================================================
 
 def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                      min_hours, allowed_anomalies, permitted_dates=None):
-    """Analyze a single employee. permitted_dates is a set of dates approved by HoD."""
     holidays = get_holidays_for_range(start_date, end_date)
     daily = emp['daily_data']
     permitted_dates = permitted_dates or set()
@@ -321,12 +459,11 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
     late_arrival_days = []
     early_departure_days = []
     short_hours_days = []
-    missing_departure_days = []  # punched in (before 2PM) but no exit punch
-    missing_arrival_days = []    # punched out (after 2PM) but no entry punch
+    missing_departure_days = []
+    missing_arrival_days = []
     anomaly_dates = set()
     working_days_count = 0
 
-    # Cutoff: single punch before 2PM = arrival, after 2PM = departure
     SINGLE_PUNCH_CUTOFF = time_to_minutes(14, 0)
 
     current = start_date
@@ -348,18 +485,12 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                 raw_departure = parse_time(data['departure']) if data else None
                 working = parse_time(data['working_hrs']) if data else None
 
-                # Determine actual arrival and departure
-                # When only one punch exists (the other is 00:00) and no working hours:
-                #   - If the recorded time < 2PM → it's an arrival (departure missing)
-                #   - If the recorded time >= 2PM → it's a departure (arrival missing)
                 arrival = raw_arrival
                 departure = raw_departure
 
                 if raw_arrival and not raw_departure and not working:
-                    # Single punch in "Arrived" column — check if it's really arrival or departure
                     punch_mins = time_to_minutes(*raw_arrival)
                     if punch_mins >= SINGLE_PUNCH_CUTOFF:
-                        # Actually a departure punch, arrival is missing
                         departure = raw_arrival
                         arrival = None
                         missing_arrival_days.append({
@@ -369,7 +500,6 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                         })
                         anomaly_dates.add(current)
                     else:
-                        # It's an arrival punch, departure is missing
                         missing_departure_days.append({
                             'date': current,
                             'punch_time': data['arrival'],
@@ -377,7 +507,6 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                         })
                         anomaly_dates.add(current)
                 elif not raw_arrival and raw_departure and not working:
-                    # Single punch in "Dept" column
                     punch_mins = time_to_minutes(*raw_departure)
                     if punch_mins < SINGLE_PUNCH_CUTOFF:
                         arrival = raw_departure
@@ -396,17 +525,14 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                         })
                         anomaly_dates.add(current)
 
-                # Check late arrival (only if we have an actual arrival)
                 if arrival and time_to_minutes(*arrival) > late_threshold_mins:
                     late_arrival_days.append({'date': current, 'time': f"{arrival[0]:02d}:{arrival[1]:02d}"})
                     anomaly_dates.add(current)
 
-                # Check early departure (only if we have an actual departure)
                 if departure and time_to_minutes(*departure) < early_threshold_mins:
                     early_departure_days.append({'date': current, 'time': f"{departure[0]:02d}:{departure[1]:02d}"})
                     anomaly_dates.add(current)
 
-                # Check short hours (only when working hours are actually recorded > 0)
                 if working:
                     if time_to_minutes(*working) < min_hours_mins:
                         short_hours_days.append({'date': current, 'hours': data['working_hrs']})
@@ -417,8 +543,7 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
 
         current += timedelta(days=1)
 
-    # Build consolidated anomaly details per date
-    # Lookup dicts for quick access
+    # Build anomaly details
     late_map = {item['date']: item['time'] for item in late_arrival_days}
     early_map = {item['date']: item['time'] for item in early_departure_days}
     short_map = {item['date']: item['hours'] for item in short_hours_days}
@@ -430,14 +555,13 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
         detail = {
             'date': ad,
             'arrival': '',
-            'arrival_status': 'normal',   # normal, late, missing
+            'arrival_status': 'normal',
             'departure': '',
-            'departure_status': 'normal', # normal, early, missing
+            'departure_status': 'normal',
             'hours': '',
-            'hours_status': 'normal',     # normal, short, missing
+            'hours_status': 'normal',
             'types': [],
         }
-        # Arrival
         if ad in late_map:
             detail['arrival'] = late_map[ad]
             detail['arrival_status'] = 'late'
@@ -449,13 +573,11 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
             detail['arrival'] = ''
             detail['arrival_status'] = 'missing'
         else:
-            # Has both punches, arrival is within limit — get from daily data
             d_data = daily.get(ad)
             if d_data:
                 arr = parse_time(d_data['arrival'])
                 detail['arrival'] = d_data['arrival'] if arr else ''
 
-        # Departure
         if ad in early_map:
             detail['departure'] = early_map[ad]
             detail['departure_status'] = 'early'
@@ -472,7 +594,6 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                 dep = parse_time(d_data['departure'])
                 detail['departure'] = d_data['departure'] if dep else ''
 
-        # Hours
         if ad in short_map:
             detail['hours'] = short_map[ad]
             detail['hours_status'] = 'short'
@@ -486,7 +607,6 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
                 wrk = parse_time(d_data['working_hrs'])
                 detail['hours'] = d_data['working_hrs'] if wrk else ''
 
-        # Missing punch types
         if ad in miss_dep_map:
             detail['types'].append('Missing Dep. Punch')
         if ad in miss_arr_map:
@@ -494,10 +614,10 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
 
         anomaly_details.append(detail)
 
-    # Remove permitted dates from anomalies
     effective_anomalies = anomaly_dates - permitted_dates
     total_anomalies = len(effective_anomalies)
-    leave_deduction = max(0, total_anomalies - allowed_anomalies)
+    # Leave deduction: 0.5 EL per anomaly day beyond allowed count
+    leave_deduction = max(0, (total_anomalies - allowed_anomalies) * 0.5)
 
     return {
         'emp_code': emp['emp_code'],
@@ -530,10 +650,11 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
     }
 
 
-# ---------- JSON serialization helpers ----------
+# ================================================================
+#  JSON SERIALIZATION HELPERS
+# ================================================================
 
 def serialize_results(results, start_date, end_date, params):
-    """Serialize analysis results to JSON-safe dict for storage."""
     data = {
         'start_date': start_date.isoformat(),
         'end_date': end_date.isoformat(),
@@ -542,13 +663,13 @@ def serialize_results(results, start_date, end_date, params):
     }
     for r in results:
         emp = dict(r)
-        # Convert date objects to strings
-        for key in ('late_arrivals', 'early_departures', 'short_hours', 'missing_departure', 'missing_arrival'):
-            emp[key] = [{'date': item['date'].isoformat(), **{k: v for k, v in item.items() if k != 'date'}}
+        for key in ('late_arrivals', 'early_departures', 'short_hours',
+                     'missing_departure', 'missing_arrival'):
+            emp[key] = [{'date': item['date'].isoformat(),
+                         **{k: v for k, v in item.items() if k != 'date'}}
                         for item in emp[key]]
         for key in ('all_anomaly_dates', 'permitted_dates', 'effective_anomaly_dates'):
             emp[key] = [d.isoformat() for d in emp[key]]
-        # anomaly_details
         emp['anomaly_details'] = [
             {**item, 'date': item['date'].isoformat()}
             for item in emp.get('anomaly_details', [])
@@ -558,14 +679,15 @@ def serialize_results(results, start_date, end_date, params):
 
 
 def deserialize_results(data):
-    """Deserialize stored JSON back to results with date objects."""
     start_date = date.fromisoformat(data['start_date'])
     end_date = date.fromisoformat(data['end_date'])
     results = []
     for emp in data['employees']:
         r = dict(emp)
-        for key in ('late_arrivals', 'early_departures', 'short_hours', 'missing_departure', 'missing_arrival'):
-            r[key] = [{'date': date.fromisoformat(item['date']), **{k: v for k, v in item.items() if k != 'date'}}
+        for key in ('late_arrivals', 'early_departures', 'short_hours',
+                     'missing_departure', 'missing_arrival'):
+            r[key] = [{'date': date.fromisoformat(item['date']),
+                        **{k: v for k, v in item.items() if k != 'date'}}
                        for item in r.get(key, [])]
         for key in ('all_anomaly_dates', 'permitted_dates', 'effective_anomaly_dates'):
             r[key] = [date.fromisoformat(d) for d in r[key]]
@@ -577,23 +699,114 @@ def deserialize_results(data):
     return results, start_date, end_date, data['params']
 
 
-# ---------- Routes ----------
+def group_by_department(results):
+    groups = {}
+    for r in results:
+        dept = r['department'] or 'Unknown'
+        if dept not in groups:
+            groups[dept] = []
+        groups[dept].append(r)
+    return dict(sorted(groups.items()))
 
-@app.route('/', methods=['GET'])
-def index():
-    return render_template('index.html')
+
+# ================================================================
+#  HELPER: populate justification rows after upload
+# ================================================================
+
+def populate_justifications(session_uuid, results):
+    """Create one justification row per anomaly date per employee."""
+    db = get_db()
+    for r in results:
+        for detail in r.get('anomaly_details', []):
+            d = detail['date']
+            date_str = d.isoformat() if isinstance(d, date) else d
+            types_str = ', '.join(detail.get('types', []))
+            db.execute('''
+                INSERT OR IGNORE INTO justifications
+                    (session_uuid, emp_code, anomaly_date, anomaly_types, status)
+                VALUES (?, ?, ?, ?, 'pending')
+            ''', (session_uuid, r['emp_code'], date_str, types_str))
+    db.commit()
 
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    # Support multiple file uploads
+def auto_create_departments(results):
+    """Auto-create department records from XLS data."""
+    db = get_db()
+    depts = set()
+    for r in results:
+        dept = r.get('department', '').strip()
+        if dept and dept != 'Unknown':
+            depts.add(dept)
+    for dept in depts:
+        db.execute('INSERT OR IGNORE INTO departments (name) VALUES (?)', (dept,))
+    db.commit()
+
+
+# ================================================================
+#  AUTH ROUTES
+# ================================================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        login_id = request.form.get('username', '').strip().lower()
+        password = request.form.get('password', '')
+        db = get_db()
+        # Try username first, then emp_code as fallback
+        user = db.execute(
+            'SELECT * FROM users WHERE (LOWER(username) = ? OR emp_code = ?) AND is_active = 1',
+            (login_id, login_id)).fetchone()
+        if user and check_password_hash(user['password_hash'], password):
+            session['user_id'] = user['id']
+            session['emp_code'] = user['emp_code']
+            session['user_name'] = user['name']
+            session['role'] = user['role']
+            return redirect(url_for('dashboard'))
+        flash('Invalid Username or Password')
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+@app.route('/')
+@login_required
+def dashboard():
+    role = session.get('role')
+    if role == 'admin':
+        return redirect(url_for('admin_dashboard'))
+    elif role == 'head':
+        return redirect(url_for('head_dashboard'))
+    else:
+        return redirect(url_for('employee_dashboard'))
+
+
+# ================================================================
+#  ADMIN ROUTES
+# ================================================================
+
+@app.route('/admin')
+@role_required('admin')
+def admin_dashboard():
+    db = get_db()
+    sessions = db.execute(
+        'SELECT * FROM upload_sessions ORDER BY created_at DESC').fetchall()
+    users = db.execute('SELECT * FROM users ORDER BY role, name').fetchall()
+    departments = db.execute('SELECT * FROM departments ORDER BY name').fetchall()
+    return render_template('admin_dashboard.html',
+                           sessions=sessions, users=users, departments=departments)
+
+
+@app.route('/admin/upload', methods=['POST'])
+@role_required('admin')
+def admin_upload():
     files = request.files.getlist('files')
     if not files or all(f.filename == '' for f in files):
-        # Fallback: try single file field name
-        files = request.files.getlist('file')
-    if not files or all(f.filename == '' for f in files):
         flash('No file uploaded')
-        return redirect(url_for('index'))
+        return redirect(url_for('admin_dashboard'))
 
     try:
         late_h, late_m = map(int, request.form.get('late_time', '10:00').split(':'))
@@ -602,9 +815,8 @@ def analyze():
         allowed_anomalies = int(request.form.get('allowed_anomalies', '2'))
     except (ValueError, TypeError):
         flash('Invalid parameter values')
-        return redirect(url_for('index'))
+        return redirect(url_for('admin_dashboard'))
 
-    # Parse each uploaded file
     file_results = []
     saved_paths = []
     for file in files:
@@ -624,7 +836,6 @@ def analyze():
         except Exception as e:
             flash(f'Error parsing {file.filename}: {str(e)}')
 
-    # Clean up uploaded files
     for fp in saved_paths:
         try:
             os.remove(fp)
@@ -633,9 +844,8 @@ def analyze():
 
     if not file_results:
         flash('No valid employee data found in the uploaded file(s)')
-        return redirect(url_for('index'))
+        return redirect(url_for('admin_dashboard'))
 
-    # Merge multi-month data
     employees, start_date, end_date = merge_multi_month(file_results)
 
     params = {
@@ -645,7 +855,6 @@ def analyze():
         'allowed_anomalies': allowed_anomalies,
     }
 
-    # Analyze each employee (Stage 1 — no permitted dates yet)
     results = []
     for emp in employees:
         result = analyze_employee(emp, start_date, end_date,
@@ -653,7 +862,6 @@ def analyze():
                                   min_hours, allowed_anomalies)
         results.append(result)
 
-    # Save results to disk for Stage 2
     session_id = str(uuid.uuid4())
     serialized = serialize_results(results, start_date, end_date, params)
     raw_employees = []
@@ -667,29 +875,73 @@ def analyze():
     with open(data_path, 'w') as f:
         json.dump(serialized, f)
 
+    # Save to database
+    db = get_db()
+    db.execute('''
+        INSERT INTO upload_sessions (session_uuid, start_date, end_date, params_json)
+        VALUES (?, ?, ?, ?)
+    ''', (session_id, start_date.isoformat(), end_date.isoformat(), json.dumps(params)))
+    db.commit()
+
+    # Auto-create departments and justification rows
+    auto_create_departments(results)
+    populate_justifications(session_id, results)
+
+    flash(f'Analysis complete! {len(results)} employees across {len(group_by_department(results))} departments.')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/report/<session_uuid>')
+@role_required('admin')
+def admin_report(session_uuid):
+    """View the full printable report (same as before)."""
+    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_uuid}.json")
+    if not os.path.exists(data_path):
+        flash('Session not found.')
+        return redirect(url_for('admin_dashboard'))
+
+    with open(data_path) as f:
+        data = json.load(f)
+
+    results, start_date, end_date, params = deserialize_results(data)
+
+    # Apply finalized decisions: excluded anomalies act as permitted dates
+    db = get_db()
+    for r in results:
+        excluded = db.execute('''
+            SELECT anomaly_date FROM justifications
+            WHERE session_uuid = ? AND emp_code = ? AND finalized = 1
+                  AND final_decision = 'excluded'
+        ''', (session_uuid, r['emp_code'])).fetchall()
+        excluded_dates = {date.fromisoformat(row['anomaly_date']) for row in excluded}
+        if excluded_dates:
+            r['permitted_dates'] = sorted(excluded_dates & set(r['all_anomaly_dates']))
+            r['permitted_count'] = len(r['permitted_dates'])
+            effective = set(r['all_anomaly_dates']) - excluded_dates
+            r['effective_anomaly_count'] = len(effective)
+            r['effective_anomaly_dates'] = sorted(effective)
+            r['leave_deduction'] = max(0, (len(effective) - r['allowed_anomalies']) * 0.5)
+
     holidays = get_holidays_for_range(start_date, end_date)
     holiday_names = get_holiday_names(start_date, end_date)
     dept_groups = group_by_department(results)
 
     return render_template('report.html',
-                           dept_groups=dept_groups,
-                           results=results,
-                           start_date=start_date,
-                           end_date=end_date,
-                           params=params,
-                           holidays=sorted(holidays),
+                           dept_groups=dept_groups, results=results,
+                           start_date=start_date, end_date=end_date,
+                           params=params, holidays=sorted(holidays),
                            holiday_names=holiday_names,
-                           session_id=session_id,
-                           stage='initial')
+                           session_id=session_uuid, stage='final')
 
 
-@app.route('/hod-review/<session_id>', methods=['GET'])
-def hod_review(session_id):
-    """Show HoD review page where permitted anomaly dates can be marked."""
-    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_id}.json")
+@app.route('/admin/review/<session_uuid>')
+@role_required('admin')
+def admin_review(session_uuid):
+    """Admin reviews Head decisions and finalizes."""
+    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_uuid}.json")
     if not os.path.exists(data_path):
-        flash('Session expired or not found. Please upload again.')
-        return redirect(url_for('index'))
+        flash('Session not found.')
+        return redirect(url_for('admin_dashboard'))
 
     with open(data_path) as f:
         data = json.load(f)
@@ -697,97 +949,501 @@ def hod_review(session_id):
     results, start_date, end_date, params = deserialize_results(data)
     dept_groups = group_by_department(results)
 
-    # Get department filter from query params
-    dept_filter = request.args.get('dept', '')
+    db = get_db()
+    justifications = db.execute(
+        'SELECT * FROM justifications WHERE session_uuid = ? ORDER BY emp_code, anomaly_date',
+        (session_uuid,)).fetchall()
 
-    holidays = get_holidays_for_range(start_date, end_date)
-    holiday_names = get_holiday_names(start_date, end_date)
+    # Build lookup: emp_code -> date_str -> justification row
+    just_map = {}
+    for j in justifications:
+        key = j['emp_code']
+        if key not in just_map:
+            just_map[key] = {}
+        just_map[key][j['anomaly_date']] = dict(j)
 
-    return render_template('hod_review.html',
-                           dept_groups=dept_groups,
-                           results=results,
-                           start_date=start_date,
-                           end_date=end_date,
-                           params=params,
-                           holidays=sorted(holidays),
-                           holiday_names=holiday_names,
-                           session_id=session_id,
-                           dept_filter=dept_filter)
+    return render_template('admin_review.html',
+                           dept_groups=dept_groups, results=results,
+                           start_date=start_date, end_date=end_date,
+                           params=params, session_uuid=session_uuid,
+                           just_map=just_map)
 
 
-@app.route('/hod-submit/<session_id>', methods=['POST'])
-def hod_submit(session_id):
-    """Process HoD feedback and generate final report."""
-    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_id}.json")
+@app.route('/admin/finalize/<session_uuid>', methods=['POST'])
+@role_required('admin')
+def admin_finalize(session_uuid):
+    """Admin finalizes decisions."""
+    db = get_db()
+    # Process form: decision_EMPCODE_DATE = excluded|counted
+    for key, value in request.form.items():
+        if key.startswith('decision_'):
+            parts = key.split('_', 2)
+            if len(parts) == 3:
+                emp_code = parts[1]
+                anomaly_date = parts[2]
+                admin_remark = request.form.get(f'admin_remark_{emp_code}_{anomaly_date}', '')
+                db.execute('''
+                    UPDATE justifications
+                    SET finalized = 1, final_decision = ?, admin_remark = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE session_uuid = ? AND emp_code = ? AND anomaly_date = ?
+                ''', (value, admin_remark, session_uuid, emp_code, anomaly_date))
+        elif key.startswith('query_head_'):
+            # Admin queries head: reset status to query
+            parts = key.split('_', 3)
+            if len(parts) == 4:
+                emp_code = parts[2]
+                anomaly_date = parts[3]
+                admin_remark = request.form.get(f'admin_remark_{emp_code}_{anomaly_date}', '')
+                db.execute('''
+                    UPDATE justifications
+                    SET status = 'query', admin_remark = ?, finalized = 0,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE session_uuid = ? AND emp_code = ? AND anomaly_date = ?
+                ''', (admin_remark, session_uuid, emp_code, anomaly_date))
+    db.commit()
+    flash('Decisions finalized successfully.')
+    return redirect(url_for('admin_review', session_uuid=session_uuid))
+
+
+@app.route('/admin/users', methods=['GET'])
+@role_required('admin')
+def admin_users():
+    db = get_db()
+    users = db.execute('SELECT * FROM users ORDER BY role, name').fetchall()
+    departments = db.execute('SELECT * FROM departments ORDER BY name').fetchall()
+    # Get head-department mappings
+    head_depts = {}
+    rows = db.execute('''
+        SELECT hd.user_id, d.name FROM head_departments hd
+        JOIN departments d ON d.id = hd.dept_id
+    ''').fetchall()
+    for row in rows:
+        head_depts.setdefault(row['user_id'], []).append(row['name'])
+    return render_template('admin_users.html',
+                           users=users, departments=departments,
+                           head_depts=head_depts)
+
+
+def generate_username(name, db):
+    """Generate a unique username from a person's name."""
+    clean = name.strip()
+    for prefix in ['Mr. ', 'Mr ', 'Mrs. ', 'Mrs ', 'Ms. ', 'Dr. ', 'Sh. ', 'Smt. ']:
+        if clean.lower().startswith(prefix.lower()):
+            clean = clean[len(prefix):]
+    parts = [p.strip().lower().replace('.', '').replace(',', '') for p in clean.split() if p.strip()]
+    parts = [p for p in parts if p]
+    if not parts:
+        return name.lower().replace(' ', '')
+    if len(parts) == 1:
+        base = parts[0]
+    else:
+        base = f'{parts[0]}.{parts[-1]}'
+    # Ensure uniqueness
+    uname = base
+    counter = 2
+    while db.execute('SELECT id FROM users WHERE username = ?', (uname,)).fetchone():
+        uname = f'{base}{counter}'
+        counter += 1
+    return uname
+
+
+@app.route('/admin/users/add', methods=['POST'])
+@role_required('admin')
+def admin_add_user():
+    emp_code = request.form.get('emp_code', '').strip()
+    name = request.form.get('name', '').strip()
+    password = request.form.get('password', '').strip()
+    role = request.form.get('role', 'employee')
+    dept_ids = request.form.getlist('departments')
+
+    if not emp_code or not name or not password:
+        flash('All fields are required.')
+        return redirect(url_for('admin_users'))
+
+    if role not in ('employee', 'head', 'admin'):
+        role = 'employee'
+
+    db = get_db()
+    try:
+        username = generate_username(name, db)
+        db.execute(
+            'INSERT INTO users (emp_code, name, password_hash, role, username) VALUES (?, ?, ?, ?, ?)',
+            (emp_code, name, generate_password_hash(password), role, username))
+        user_id = db.execute('SELECT id FROM users WHERE emp_code = ?', (emp_code,)).fetchone()['id']
+
+        if role == 'head' and dept_ids:
+            for did in dept_ids:
+                db.execute('INSERT OR IGNORE INTO head_departments (user_id, dept_id) VALUES (?, ?)',
+                           (user_id, int(did)))
+        db.commit()
+        flash(f'User {name} added. Username: {username} ({role})')
+    except sqlite3.IntegrityError:
+        flash(f'Employee code "{emp_code}" already exists.')
+
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/edit/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def admin_edit_user(user_id):
+    name = request.form.get('name', '').strip()
+    role = request.form.get('role', 'employee')
+    password = request.form.get('password', '').strip()
+    dept_ids = request.form.getlist('departments')
+    is_active = 1 if request.form.get('is_active') else 0
+
+    db = get_db()
+    if password:
+        db.execute('UPDATE users SET name=?, role=?, password_hash=?, is_active=? WHERE id=?',
+                   (name, role, generate_password_hash(password), is_active, user_id))
+    else:
+        db.execute('UPDATE users SET name=?, role=?, is_active=? WHERE id=?',
+                   (name, role, is_active, user_id))
+
+    # Update head-department mappings
+    db.execute('DELETE FROM head_departments WHERE user_id = ?', (user_id,))
+    if role == 'head' and dept_ids:
+        for did in dept_ids:
+            db.execute('INSERT INTO head_departments (user_id, dept_id) VALUES (?, ?)',
+                       (user_id, int(did)))
+    db.commit()
+    flash('User updated successfully.')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def admin_delete_user(user_id):
+    db = get_db()
+    db.execute('DELETE FROM users WHERE id = ? AND emp_code != ?', (user_id, 'admin'))
+    db.commit()
+    flash('User deleted.')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/departments/add', methods=['POST'])
+@role_required('admin')
+def admin_add_dept():
+    name = request.form.get('dept_name', '').strip()
+    if name:
+        db = get_db()
+        try:
+            db.execute('INSERT INTO departments (name) VALUES (?)', (name,))
+            db.commit()
+            flash(f'Department "{name}" added.')
+        except sqlite3.IntegrityError:
+            flash(f'Department "{name}" already exists.')
+    return redirect(url_for('admin_users'))
+
+
+# ================================================================
+#  EMPLOYEE ROUTES
+# ================================================================
+
+@app.route('/employee')
+@role_required('employee', 'head', 'admin')
+def employee_dashboard():
+    emp_code = session.get('emp_code')
+    db = get_db()
+
+    # Get all sessions where this employee has anomalies
+    sessions_with_data = db.execute('''
+        SELECT DISTINCT us.session_uuid, us.start_date, us.end_date, us.created_at
+        FROM upload_sessions us
+        JOIN justifications j ON j.session_uuid = us.session_uuid
+        WHERE j.emp_code = ?
+        ORDER BY us.created_at DESC
+    ''', (emp_code,)).fetchall()
+
+    # For each session, get justification summary
+    session_data = []
+    for s in sessions_with_data:
+        justs = db.execute('''
+            SELECT * FROM justifications
+            WHERE session_uuid = ? AND emp_code = ?
+            ORDER BY anomaly_date
+        ''', (s['session_uuid'], emp_code)).fetchall()
+
+        total = len(justs)
+        pending = sum(1 for j in justs if j['status'] == 'pending')
+        submitted = sum(1 for j in justs if j['status'] == 'submitted')
+        query = sum(1 for j in justs if j['status'] in ('query', 'query_by_admin'))
+        accepted = sum(1 for j in justs if j['status'] == 'accepted')
+        declined = sum(1 for j in justs if j['status'] == 'declined')
+
+        session_data.append({
+            'session_uuid': s['session_uuid'],
+            'start_date': s['start_date'],
+            'end_date': s['end_date'],
+            'created_at': s['created_at'],
+            'total': total,
+            'pending': pending,
+            'submitted': submitted,
+            'query': query,
+            'accepted': accepted,
+            'declined': declined,
+        })
+
+    return render_template('employee_dashboard.html', session_data=session_data)
+
+
+@app.route('/employee/report/<session_uuid>')
+@role_required('employee', 'head', 'admin')
+def employee_report(session_uuid):
+    """Employee views own anomalies and submits justifications."""
+    emp_code = session.get('emp_code')
+    db = get_db()
+
+    # Load analysis data
+    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_uuid}.json")
     if not os.path.exists(data_path):
-        flash('Session expired or not found. Please upload again.')
-        return redirect(url_for('index'))
+        flash('Session not found.')
+        return redirect(url_for('employee_dashboard'))
 
     with open(data_path) as f:
         data = json.load(f)
 
-    params = data['params']
-    start_date = date.fromisoformat(data['start_date'])
-    end_date = date.fromisoformat(data['end_date'])
-    late_h, late_m = map(int, params['late_time'].split(':'))
-    early_h, early_m = map(int, params['early_time'].split(':'))
+    results, start_date, end_date, params = deserialize_results(data)
 
-    # Reconstruct raw employees
-    raw_employees = []
-    for raw_emp in data['raw_employees']:
-        emp = dict(raw_emp)
-        emp['daily_data'] = {date.fromisoformat(k): v for k, v in raw_emp['daily_data'].items()}
-        raw_employees.append(emp)
+    # Find this employee's results
+    emp_result = None
+    for r in results:
+        if r['emp_code'] == emp_code:
+            emp_result = r
+            break
 
-    # Collect permitted dates per employee from form
-    permitted_map = {}  # emp_code -> set of dates
-    for key, value in request.form.items():
-        # Format: permit_EMPCODE_YYYY-MM-DD
-        if key.startswith('permit_'):
-            parts = key.split('_', 2)
-            if len(parts) == 3:
-                emp_code = parts[1]
-                try:
-                    permitted_date = date.fromisoformat(parts[2])
-                    if emp_code not in permitted_map:
-                        permitted_map[emp_code] = set()
-                    permitted_map[emp_code].add(permitted_date)
-                except ValueError:
-                    pass
+    if not emp_result:
+        flash('No attendance data found for your employee code.')
+        return redirect(url_for('employee_dashboard'))
 
-    # Re-analyze with permitted dates
-    results = []
-    for emp in raw_employees:
-        permitted = permitted_map.get(emp['emp_code'], set())
-        result = analyze_employee(emp, start_date, end_date,
-                                  (late_h, late_m), (early_h, early_m),
-                                  params['min_hours'], params['allowed_anomalies'],
-                                  permitted_dates=permitted)
-        results.append(result)
+    # Get justification rows
+    justs = db.execute('''
+        SELECT * FROM justifications
+        WHERE session_uuid = ? AND emp_code = ?
+        ORDER BY anomaly_date
+    ''', (session_uuid, emp_code)).fetchall()
+
+    just_map = {j['anomaly_date']: dict(j) for j in justs}
 
     holidays = get_holidays_for_range(start_date, end_date)
     holiday_names = get_holiday_names(start_date, end_date)
-    dept_groups = group_by_department(results)
 
-    return render_template('report.html',
-                           dept_groups=dept_groups,
-                           results=results,
-                           start_date=start_date,
-                           end_date=end_date,
-                           params=params,
+    return render_template('employee_report.html',
+                           emp=emp_result, start_date=start_date,
+                           end_date=end_date, params=params,
                            holidays=sorted(holidays),
                            holiday_names=holiday_names,
-                           session_id=session_id,
-                           stage='final')
+                           session_uuid=session_uuid,
+                           just_map=just_map)
+
+
+@app.route('/employee/justify/<session_uuid>', methods=['POST'])
+@role_required('employee', 'head', 'admin')
+def employee_justify(session_uuid):
+    """Employee submits justifications for anomalies."""
+    emp_code = session.get('emp_code')
+    db = get_db()
+
+    for key, value in request.form.items():
+        if key.startswith('justification_'):
+            anomaly_date = key.replace('justification_', '')
+            value = value.strip()
+            if value:
+                db.execute('''
+                    UPDATE justifications
+                    SET justification = ?, status = 'submitted',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE session_uuid = ? AND emp_code = ? AND anomaly_date = ?
+                          AND status IN ('pending', 'query')
+                ''', (value, session_uuid, emp_code, anomaly_date))
+    db.commit()
+    flash('Justifications submitted to your Department Head.')
+    return redirect(url_for('employee_report', session_uuid=session_uuid))
+
+
+# ================================================================
+#  HEAD ROUTES
+# ================================================================
+
+@app.route('/head')
+@role_required('head', 'admin')
+def head_dashboard():
+    db = get_db()
+    user_id = session.get('user_id')
+
+    # Get departments managed by this head
+    if session.get('role') == 'admin':
+        managed_depts = [row['name'] for row in
+                         db.execute('SELECT name FROM departments ORDER BY name').fetchall()]
+    else:
+        managed_depts = [row['name'] for row in db.execute('''
+            SELECT d.name FROM head_departments hd
+            JOIN departments d ON d.id = hd.dept_id
+            WHERE hd.user_id = ?
+            ORDER BY d.name
+        ''', (user_id,)).fetchall()]
+
+    if not managed_depts:
+        flash('No departments assigned to you. Please contact Admin.')
+        return render_template('head_dashboard.html',
+                               managed_depts=[], sessions_data=[])
+
+    # Get all sessions
+    all_sessions = db.execute(
+        'SELECT * FROM upload_sessions ORDER BY created_at DESC').fetchall()
+
+    sessions_data = []
+    for s in all_sessions:
+        data_path = os.path.join(app.config['DATA_FOLDER'], f"{s['session_uuid']}.json")
+        if not os.path.exists(data_path):
+            continue
+
+        with open(data_path) as f:
+            data = json.load(f)
+
+        results, start_date, end_date, params = deserialize_results(data)
+
+        # Filter employees in managed departments
+        dept_emps = [r for r in results if r['department'] in managed_depts]
+        if not dept_emps:
+            continue
+
+        # Count justification statuses
+        emp_codes = [r['emp_code'] for r in dept_emps]
+        placeholders = ','.join('?' * len(emp_codes))
+        justs = db.execute(f'''
+            SELECT * FROM justifications
+            WHERE session_uuid = ? AND emp_code IN ({placeholders})
+            ORDER BY emp_code, anomaly_date
+        ''', [s['session_uuid']] + emp_codes).fetchall()
+
+        pending_review = sum(1 for j in justs if j['status'] in ('submitted', 'resubmitted'))
+        query_pending = sum(1 for j in justs if j['status'] == 'query')
+        decided = sum(1 for j in justs if j['status'] in ('accepted', 'declined'))
+
+        sessions_data.append({
+            'session_uuid': s['session_uuid'],
+            'start_date': s['start_date'],
+            'end_date': s['end_date'],
+            'created_at': s['created_at'],
+            'emp_count': len(dept_emps),
+            'pending_review': pending_review,
+            'query_pending': query_pending,
+            'decided': decided,
+            'total': len(justs),
+        })
+
+    return render_template('head_dashboard.html',
+                           managed_depts=managed_depts,
+                           sessions_data=sessions_data)
+
+
+@app.route('/head/review/<session_uuid>')
+@role_required('head', 'admin')
+def head_review(session_uuid):
+    """Head reviews justifications from their departments."""
+    db = get_db()
+    user_id = session.get('user_id')
+
+    if session.get('role') == 'admin':
+        managed_depts = [row['name'] for row in
+                         db.execute('SELECT name FROM departments ORDER BY name').fetchall()]
+    else:
+        managed_depts = [row['name'] for row in db.execute('''
+            SELECT d.name FROM head_departments hd
+            JOIN departments d ON d.id = hd.dept_id
+            WHERE hd.user_id = ?
+        ''', (user_id,)).fetchall()]
+
+    data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_uuid}.json")
+    if not os.path.exists(data_path):
+        flash('Session not found.')
+        return redirect(url_for('head_dashboard'))
+
+    with open(data_path) as f:
+        data = json.load(f)
+
+    results, start_date, end_date, params = deserialize_results(data)
+    dept_results = [r for r in results if r['department'] in managed_depts]
+    dept_groups = group_by_department(dept_results)
+
+    # Get justifications for these employees
+    emp_codes = [r['emp_code'] for r in dept_results]
+    if emp_codes:
+        placeholders = ','.join('?' * len(emp_codes))
+        justs = db.execute(f'''
+            SELECT * FROM justifications
+            WHERE session_uuid = ? AND emp_code IN ({placeholders})
+            ORDER BY emp_code, anomaly_date
+        ''', [session_uuid] + emp_codes).fetchall()
+    else:
+        justs = []
+
+    just_map = {}
+    for j in justs:
+        just_map.setdefault(j['emp_code'], {})[j['anomaly_date']] = dict(j)
+
+    holidays = get_holidays_for_range(start_date, end_date)
+    holiday_names = get_holiday_names(start_date, end_date)
+
+    return render_template('head_review.html',
+                           dept_groups=dept_groups, results=dept_results,
+                           start_date=start_date, end_date=end_date,
+                           params=params, session_uuid=session_uuid,
+                           just_map=just_map,
+                           holidays=sorted(holidays),
+                           holiday_names=holiday_names)
+
+
+@app.route('/head/submit/<session_uuid>', methods=['POST'])
+@role_required('head', 'admin')
+def head_submit(session_uuid):
+    """Head submits accept/decline/query decisions."""
+    db = get_db()
+
+    for key, value in request.form.items():
+        if key.startswith('action_'):
+            # action_EMPCODE_DATE = accepted|declined|query
+            parts = key.split('_', 2)
+            if len(parts) == 3:
+                emp_code = parts[1]
+                anomaly_date = parts[2]
+                head_remark = request.form.get(f'remark_{emp_code}_{anomaly_date}', '')
+                new_status = value  # accepted, declined, or query
+
+                db.execute('''
+                    UPDATE justifications
+                    SET status = ?, head_action = ?, head_remark = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE session_uuid = ? AND emp_code = ? AND anomaly_date = ?
+                          AND status IN ('submitted', 'resubmitted', 'query')
+                ''', (new_status, value, head_remark,
+                      session_uuid, emp_code, anomaly_date))
+    db.commit()
+    flash('Decisions submitted successfully.')
+    return redirect(url_for('head_review', session_uuid=session_uuid))
+
+
+# ================================================================
+#  LEGACY ROUTES (keep for backward compatibility with report.html)
+# ================================================================
+
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    """Legacy analyze route - redirects to admin upload if logged in."""
+    if 'user_id' in session and session.get('role') == 'admin':
+        return admin_upload()
+    return redirect(url_for('login'))
 
 
 @app.route('/dept-report/<session_id>/<dept_name>')
+@login_required
 def dept_report(session_id, dept_name):
-    """Printable report for a single department — to send to HoD."""
     data_path = os.path.join(app.config['DATA_FOLDER'], f"{session_id}.json")
     if not os.path.exists(data_path):
         flash('Session expired or not found.')
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
 
     with open(data_path) as f:
         data = json.load(f)
@@ -799,26 +1455,49 @@ def dept_report(session_id, dept_name):
     holiday_names = get_holiday_names(start_date, end_date)
 
     return render_template('dept_report.html',
-                           dept_name=dept_name,
-                           results=dept_results,
-                           start_date=start_date,
-                           end_date=end_date,
-                           params=params,
-                           holidays=sorted(holidays),
-                           holiday_names=holiday_names,
-                           session_id=session_id)
+                           dept_name=dept_name, results=dept_results,
+                           start_date=start_date, end_date=end_date,
+                           params=params, holidays=sorted(holidays),
+                           holiday_names=holiday_names, session_id=session_id)
 
 
-def group_by_department(results):
-    """Group results by department, sorted by department name."""
-    groups = {}
-    for r in results:
-        dept = r['department'] or 'Unknown'
-        if dept not in groups:
-            groups[dept] = []
-        groups[dept].append(r)
-    return dict(sorted(groups.items()))
+# ================================================================
+#  PASSWORD CHANGE
+# ================================================================
 
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        old_pw = request.form.get('old_password', '')
+        new_pw = request.form.get('new_password', '')
+        confirm = request.form.get('confirm_password', '')
+
+        if new_pw != confirm:
+            flash('New passwords do not match.')
+            return redirect(url_for('change_password'))
+
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE id = ?',
+                          (session['user_id'],)).fetchone()
+        if not check_password_hash(user['password_hash'], old_pw):
+            flash('Current password is incorrect.')
+            return redirect(url_for('change_password'))
+
+        db.execute('UPDATE users SET password_hash = ? WHERE id = ?',
+                   (generate_password_hash(new_pw), session['user_id']))
+        db.commit()
+        flash('Password changed successfully.')
+        return redirect(url_for('dashboard'))
+
+    return render_template('change_password.html')
+
+
+# ================================================================
+#  INIT & RUN
+# ================================================================
+
+init_db()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

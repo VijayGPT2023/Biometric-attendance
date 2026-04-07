@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - Biometric Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 1.2rem; }
+        .navbar .nav-links a {
+            color: rgba(255,255,255,0.85); text-decoration: none; margin-left: 18px; font-size: 0.88rem;
+            padding: 6px 12px; border-radius: 5px; transition: background 0.2s;
+        }
+        .navbar .nav-links a:hover { background: rgba(255,255,255,0.2); }
+        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
+        .card {
+            background: #fff; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px;
+        }
+        .card h2 { font-size: 1.1rem; color: #333; margin-bottom: 16px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
+        .flash { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 12px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem; }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; align-items: flex-end; }
+        .form-group { flex: 1; min-width: 130px; }
+        label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.82rem; }
+        input, select {
+            width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.88rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #667eea; }
+        .btn {
+            padding: 8px 18px; border: none; border-radius: 6px; font-size: 0.85rem;
+            cursor: pointer; font-weight: 600; transition: transform 0.1s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+        .btn-sm { padding: 4px 12px; font-size: 0.78rem; }
+        .btn-green { background: #43a047; color: #fff; }
+        .btn-red { background: #c62828; color: #fff; }
+        .btn-orange { background: #f57c00; color: #fff; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        th { background: #f5f5f5; padding: 9px 10px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
+        td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #f8f8ff; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; color: #fff; }
+        .badge-admin { background: #c62828; }
+        .badge-head { background: #f57c00; }
+        .badge-employee { background: #43a047; }
+        .dept-tags span {
+            display: inline-block; background: #e8eaf6; color: #3949ab; padding: 2px 8px;
+            border-radius: 4px; font-size: 0.75rem; margin: 1px 2px;
+        }
+        select[multiple] { min-height: 80px; }
+        .edit-form { display: none; background: #fafbff; padding: 12px; border-radius: 8px; margin-top: 6px; }
+        .edit-form.open { display: block; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Manage Users &amp; Departments</h1>
+        <div class="nav-links">
+            <a href="/admin">Dashboard</a>
+            <a href="/admin/users">Manage Users</a>
+            <a href="/change-password">Password</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <!-- Add Department -->
+        <div class="card">
+            <h2>Add Department</h2>
+            <form action="/admin/departments/add" method="post" style="display:flex; gap:12px; align-items:flex-end;">
+                <div class="form-group">
+                    <label>Department Name</label>
+                    <input type="text" name="dept_name" placeholder="e.g. AB Group" required>
+                </div>
+                <button type="submit" class="btn btn-green">Add Department</button>
+            </form>
+            {% if departments %}
+            <div style="margin-top: 12px;">
+                <strong style="font-size:0.82rem; color:#555;">Existing Departments:</strong>
+                <div class="dept-tags" style="margin-top:4px;">
+                    {% for d in departments %}<span>{{ d.name }}</span>{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add User -->
+        <div class="card">
+            <h2>Add User</h2>
+            <form action="/admin/users/add" method="post">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Employee Code</label>
+                        <input type="text" name="emp_code" placeholder="e.g. NPC001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" placeholder="e.g. Vijay Kumar" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="text" name="password" placeholder="Initial password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select name="role" onchange="toggleDeptSelect(this)">
+                            <option value="employee">Employee</option>
+                            <option value="head">Head</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row" id="deptSelectRow" style="display:none;">
+                    <div class="form-group">
+                        <label>Assign Departments (for Head role)</label>
+                        <select name="departments" multiple>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}">{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add User</button>
+            </form>
+        </div>
+
+        <!-- User List -->
+        <div class="card">
+            <h2>All Users ({{ users|length }})</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Emp Code</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Departments</th>
+                        <th>Active</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td><strong>{{ u.username or u.emp_code }}</strong></td>
+                        <td>{{ u.emp_code }}</td>
+                        <td>{{ u.name }}</td>
+                        <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+                        <td>
+                            <div class="dept-tags">
+                                {% for d in head_depts.get(u.id, []) %}<span>{{ d }}</span>{% endfor %}
+                                {% if u.role != 'head' %}<span style="background:#eee;color:#999;">-</span>{% endif %}
+                            </div>
+                        </td>
+                        <td>{% if u.is_active %}Yes{% else %}No{% endif %}</td>
+                        <td>
+                            <button class="btn btn-sm btn-orange" onclick="toggleEdit('edit_{{ u.id }}')">Edit</button>
+                            {% if u.emp_code != 'admin' %}
+                            <form action="/admin/users/delete/{{ u.id }}" method="post" style="display:inline;"
+                                  onsubmit="return confirm('Delete user {{ u.name }}?')">
+                                <button type="submit" class="btn btn-sm btn-red">Delete</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" style="padding:0;">
+                            <div class="edit-form" id="edit_{{ u.id }}">
+                                <form action="/admin/users/edit/{{ u.id }}" method="post">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Name</label>
+                                            <input type="text" name="name" value="{{ u.name }}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Role</label>
+                                            <select name="role">
+                                                <option value="employee" {% if u.role=='employee' %}selected{% endif %}>Employee</option>
+                                                <option value="head" {% if u.role=='head' %}selected{% endif %}>Head</option>
+                                                <option value="admin" {% if u.role=='admin' %}selected{% endif %}>Admin</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>New Password (leave blank to keep)</label>
+                                            <input type="text" name="password" placeholder="New password">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Active</label>
+                                            <select name="is_active">
+                                                <option value="1" {% if u.is_active %}selected{% endif %}>Yes</option>
+                                                <option value="" {% if not u.is_active %}selected{% endif %}>No</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Departments (for Head)</label>
+                                            <select name="departments" multiple>
+                                                {% for d in departments %}
+                                                <option value="{{ d.id }}"
+                                                    {% if d.name in head_depts.get(u.id, []) %}selected{% endif %}>
+                                                    {{ d.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-green">Save Changes</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleDeptSelect(sel) {
+            document.getElementById('deptSelectRow').style.display =
+                sel.value === 'head' ? 'flex' : 'none';
+        }
+        function toggleEdit(id) {
+            var el = document.getElementById(id);
+            el.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
