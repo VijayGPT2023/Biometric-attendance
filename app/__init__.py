@@ -76,6 +76,13 @@ def _register_blueprints(app):
     from app.blueprints.employee import employee_bp
     from app.blueprints.head import head_bp
     from app.blueprints.attendance import attendance_bp
+    from app.blueprints.reports import reports_bp
+    from app.blueprints.reconciliation import reconciliation_bp
+    from app.blueprints.holidays import holidays_bp
+    from app.blueprints.notifications import notifications_bp
+    from app.blueprints.audit import audit_bp
+    from app.blueprints.settings import settings_bp
+    from app.blueprints.api.v1 import api_v1_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -83,6 +90,13 @@ def _register_blueprints(app):
     app.register_blueprint(employee_bp)
     app.register_blueprint(head_bp)
     app.register_blueprint(attendance_bp)
+    app.register_blueprint(reports_bp)
+    app.register_blueprint(reconciliation_bp)
+    app.register_blueprint(holidays_bp)
+    app.register_blueprint(notifications_bp)
+    app.register_blueprint(audit_bp)
+    app.register_blueprint(settings_bp)
+    app.register_blueprint(api_v1_bp)
 
 
 def _register_error_handlers(app):

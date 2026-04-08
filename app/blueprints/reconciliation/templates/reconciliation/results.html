@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ page_title|default('NPC Biometric') }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5}
+.nav{background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
+.nav h1{font-size:1.1rem}
+.nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:16px;font-size:0.88rem;padding:6px 12px;border-radius:5px}
+.nav a:hover{background:rgba(255,255,255,0.2)}
+.container{max-width:1100px;margin:24px auto;padding:0 20px}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:24px}
+.card h2{font-size:1.1rem;margin-bottom:16px;border-bottom:2px solid #1a237e;padding-bottom:8px}
+.flash{background:#d4edda;color:#155724;border:1px solid #c3e6cb;padding:12px;border-radius:8px;margin-bottom:18px;font-size:0.9rem}
+</style>
+</head>
+<body>
+<div class="nav">
+<h1>NPC Biometric Attendance</h1>
+<div>
+<a href="/">Dashboard</a>
+<a href="/change-password">Password</a>
+<a href="/logout">Logout</a>
+</div>
+</div>
+<div class="container">
+{% with messages = get_flashed_messages() %}
+{% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+{% endwith %}
+{% block content %}
+<div class="card">
+<h2>{{ page_title|default('Page Under Construction') }}</h2>
+<p>This module is being built. Check back soon.</p>
+</div>
+{% endblock %}
+</div>
+</body>
+</html>

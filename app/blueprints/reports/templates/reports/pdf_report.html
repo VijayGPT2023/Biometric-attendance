@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #333; margin: 20px; }
+h1 { font-size: 16px; color: #1a237e; text-align: center; margin-bottom: 4px; }
+h2 { font-size: 12px; color: #333; margin-top: 16px; background: #e8eaf6; padding: 4px 8px; }
+.meta { text-align: center; font-size: 9px; color: #666; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 9px; }
+th { background: #e8eaf6; padding: 4px 6px; text-align: center; font-weight: bold; border: 1px solid #ccc; }
+td { padding: 3px 6px; border: 1px solid #ddd; text-align: center; }
+td:nth-child(1), td:nth-child(2), td:nth-child(3) { text-align: left; }
+.danger { color: #c62828; font-weight: bold; }
+.success { color: #2e7d32; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Attendance Analysis Report</h1>
+<div class="meta">
+    National Productivity Council, Ministry of Commerce &amp; Industry, Govt. of India<br>
+    Period: {{ start_date.strftime('%d-%b-%Y') }} to {{ end_date.strftime('%d-%b-%Y') }}
+    | Employees: {{ results|length }}
+    | Late After: {{ params.late_time }} | Early Before: {{ params.early_time }}
+    | Min Hours: {{ params.min_hours }} | Allowed Anomalies: {{ params.allowed_anomalies }}
+</div>
+
+{% for dept_name, dept_results in dept_groups.items() %}
+<h2>{{ dept_name }} ({{ dept_results|length }} employees)</h2>
+<table>
+<thead>
+<tr>
+    <th>Code</th><th>Name</th><th>Desig.</th><th>W.Days</th><th>Present</th><th>Absent</th>
+    <th>Late</th><th>Early</th><th>Short</th><th>M.Dep</th><th>M.Arr</th>
+    <th>Anom.</th><th>Eff.</th><th>Leave</th>
+</tr>
+</thead>
+<tbody>
+{% for r in dept_results %}
+<tr>
+    <td>{{ r.emp_code }}</td>
+    <td>{{ r.emp_name }}</td>
+    <td>{{ r.designation }}</td>
+    <td>{{ r.working_days }}</td>
+    <td>{{ r.present }}</td>
+    <td>{{ r.absent }}</td>
+    <td>{{ r.late_arrival_count }}</td>
+    <td>{{ r.early_departure_count }}</td>
+    <td>{{ r.short_hours_count }}</td>
+    <td>{{ r.missing_departure_count }}</td>
+    <td>{{ r.missing_arrival_count }}</td>
+    <td>{{ r.total_anomaly_dates_raw }}</td>
+    <td class="{% if r.effective_anomaly_count > r.allowed_anomalies %}danger{% endif %}">{{ r.effective_anomaly_count }}</td>
+    <td class="{% if r.leave_deduction > 0 %}danger{% else %}success{% endif %}">{{ r.leave_deduction }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endfor %}
+</body>
+</html>
