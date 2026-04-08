@@ -16,29 +16,22 @@ with app.app_context():
             logger.info("v2 schema detected.")
         except Exception:
             db.session.rollback()
-            logger.info("v1 schema detected or fresh DB. Dropping all tables for clean v2 start...")
+            logger.info("v1 or fresh DB. Dropping for clean v2...")
             db.drop_all()
 
         db.create_all()
-        logger.info("Database tables ensured.")
+        logger.info("Database tables ready.")
 
-        # Seed if admin user doesn't exist
         from app.models.user import User
         if not User.query.filter_by(username='admin').first():
-            logger.info("First startup detected - seeding data...")
-            from manage import (_seed_offices, _seed_admin, _seed_departments,
-                                _seed_head_accounts, _seed_employees, _seed_holidays_2026)
-            _seed_offices()
-            _seed_admin()
-            _seed_departments()
-            _seed_head_accounts()
-            _seed_employees()
-            _seed_holidays_2026()
-            logger.info("Seed complete: 160 users, 12 departments, 18 holidays")
+            logger.info("Seeding...")
+            from app.seeds import seed_all
+            seed_all()
+            logger.info("Seed complete.")
         else:
-            logger.info("Database already seeded.")
+            logger.info("Already seeded.")
     except Exception as e:
-        logger.error(f"Database init error: {e}", exc_info=True)
+        logger.error(f"DB init error: {e}", exc_info=True)
 
 
 if __name__ == '__main__':
