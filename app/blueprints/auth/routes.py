@@ -105,11 +105,11 @@ def dashboard():
         return redirect(url_for('auth.change_password'))
     role = current_user.role
     if role in ('super_admin', 'admin'):
-        return redirect(url_for('auth.placeholder', page='admin'))
+        return redirect(url_for('admin.dashboard'))
     elif role == 'head':
-        return redirect(url_for('auth.placeholder', page='head'))
+        return redirect(url_for('head.dashboard'))
     else:
-        return redirect(url_for('auth.placeholder', page='employee'))
+        return redirect(url_for('employee.dashboard'))
 
 
 @auth_bp.route('/placeholder/<page>')

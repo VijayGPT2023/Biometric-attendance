@@ -72,22 +72,17 @@ def _init_extensions(app):
 def _register_blueprints(app):
     from app.blueprints.health import health_bp
     from app.blueprints.auth import auth_bp
+    from app.blueprints.admin import admin_bp
+    from app.blueprints.employee import employee_bp
+    from app.blueprints.head import head_bp
+    from app.blueprints.attendance import attendance_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
-
-    # These will be added as we build them:
-    # from app.blueprints.admin import admin_bp
-    # from app.blueprints.employee import employee_bp
-    # from app.blueprints.head import head_bp
-    # from app.blueprints.attendance import attendance_bp
-    # from app.blueprints.reports import reports_bp
-    # from app.blueprints.reconciliation import reconciliation_bp
-    # from app.blueprints.holidays import holidays_bp
-    # from app.blueprints.notifications import notifications_bp
-    # from app.blueprints.audit import audit_bp
-    # from app.blueprints.settings import settings_bp
-    # from app.blueprints.api.v1 import api_v1_bp
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(employee_bp)
+    app.register_blueprint(head_bp)
+    app.register_blueprint(attendance_bp)
 
 
 def _register_error_handlers(app):
