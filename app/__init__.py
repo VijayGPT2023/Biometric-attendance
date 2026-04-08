@@ -128,11 +128,15 @@ def _register_hooks(app):
     @app.context_processor
     def inject_globals():
         """Make common variables available in all templates."""
-        from app.models.notification import Notification
+        from flask_login import current_user
         unread_count = 0
-        if hasattr(g, 'user') and g.user:
-            unread_count = Notification.query.filter_by(
-                user_id=g.user.id, is_read=False).count()
+        try:
+            if current_user and current_user.is_authenticated:
+                from app.models.notification import Notification
+                unread_count = Notification.query.filter_by(
+                    user_id=current_user.id, is_read=False).count()
+        except Exception:
+            pass
         return {
             'unread_notifications': unread_count,
             'current_year': __import__('datetime').datetime.now().year,

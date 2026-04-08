@@ -23,14 +23,17 @@ def login():
         password = request.form.get('password', '')
         ip = _get_client_ip()
 
-        user = User.query.filter(
-            db.or_(
-                db.func.lower(User.username) == login_id,
-                User.emp_code == login_id
-            ),
-            User.is_active == True,
-            User.is_deleted == False
-        ).first()
+        try:
+            user = User.query.filter(
+                db.or_(
+                    db.func.lower(User.username) == login_id,
+                    User.emp_code == login_id
+                ),
+                User.is_active == True,
+            ).first()
+        except Exception as e:
+            current_app.logger.error(f"Login query error: {e}")
+            user = None
 
         if user and user.is_locked():
             flash('Account is locked due to too many failed attempts. Try again later.')
