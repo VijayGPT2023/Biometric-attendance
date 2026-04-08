@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NPC Biometric Attendance Management System">
+    <meta name="author" content="National Productivity Council">
+    <title>{% block title %}NPC Biometric Attendance{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Accessibility: Skip to content -->
+    <a href="#main-content" class="skip-link">Skip to Main Content</a>
+
+    <!-- GIGW 3.0 Header -->
+    <header class="gigw-header" role="banner">
+        <div class="gigw-header-inner">
+            <div class="gigw-logo">
+                <img src="{{ url_for('static', filename='images/emblem.svg') }}" alt="Emblem of India" onerror="this.style.display='none'">
+                <div class="gigw-org">
+                    <div class="org-name">National Productivity Council</div>
+                    <div class="org-name" style="font-size:0.82rem;">राष्ट्रीय उत्पादकता परिषद</div>
+                    <div class="ministry">Ministry of Commerce &amp; Industry, Govt. of India</div>
+                    <div class="ministry">वाणिज्य एवं उद्योग मंत्रालय, भारत सरकार</div>
+                </div>
+            </div>
+            <div class="gigw-tools">
+                <button onclick="changeFontSize(-1)" title="Decrease text size" aria-label="Decrease text size">A-</button>
+                <button onclick="changeFontSize(0)" title="Normal text size" aria-label="Normal text size">A</button>
+                <button onclick="changeFontSize(1)" title="Increase text size" aria-label="Increase text size">A+</button>
+                <a href="?lang=en" class="lang-switch {% if not session.get('lang') or session.get('lang') == 'en' %}active{% endif %}">EN</a>
+                <a href="?lang=hi" class="lang-switch {% if session.get('lang') == 'hi' %}active{% endif %}">हिं</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    {% if current_user.is_authenticated %}
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
+        <div class="navbar-inner">
+            <div style="display:flex;align-items:center;">
+                <h1>Biometric Attendance</h1>
+                <span class="user-info">{{ current_user.name }} ({{ current_user.role }})</span>
+            </div>
+            <div class="nav-links">
+                {% if current_user.role in ('super_admin', 'admin') %}
+                <a href="{{ url_for('admin.dashboard') }}" {% if request.path.startswith('/admin') %}class="active"{% endif %}>Dashboard</a>
+                <a href="{{ url_for('admin.users') }}" {% if '/users' in request.path %}class="active"{% endif %}>Users</a>
+                <a href="{{ url_for('holidays.calendar') }}" {% if '/holidays' in request.path %}class="active"{% endif %}>Holidays</a>
+                <a href="{{ url_for('reconciliation.dashboard') }}" {% if '/reconciliation' in request.path %}class="active"{% endif %}>Reconcile</a>
+                <a href="{{ url_for('settings.index') }}" {% if '/settings' in request.path %}class="active"{% endif %}>Settings</a>
+                <a href="{{ url_for('audit.index') }}" {% if '/audit' in request.path %}class="active"{% endif %}>Audit</a>
+                {% elif current_user.role == 'head' %}
+                <a href="{{ url_for('head.dashboard') }}" {% if request.path.startswith('/head') %}class="active"{% endif %}>Dashboard</a>
+                <a href="{{ url_for('holidays.calendar') }}">Holidays</a>
+                {% elif current_user.role == 'auditor' %}
+                <a href="{{ url_for('audit.index') }}">Audit Log</a>
+                {% else %}
+                <a href="{{ url_for('employee.dashboard') }}" {% if request.path.startswith('/employee') %}class="active"{% endif %}>Dashboard</a>
+                <a href="{{ url_for('holidays.calendar') }}">Holidays</a>
+                {% endif %}
+                <a href="{{ url_for('notifications.index') }}">
+                    Alerts
+                    {% if unread_notifications %}<span class="notif-badge">{{ unread_notifications }}</span>{% endif %}
+                </a>
+                <a href="{{ url_for('auth.change_password') }}">Password</a>
+                <a href="{{ url_for('auth.logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Breadcrumb -->
+    {% block breadcrumb %}{% endblock %}
+
+    <!-- Main Content -->
+    <main id="main-content" class="container" role="main">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="flash" role="alert">{{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- GIGW Footer -->
+    <footer class="gigw-footer" role="contentinfo">
+        <div class="gigw-footer-inner">
+            <div>
+                Content owned by National Productivity Council, New Delhi
+                | Last Updated: {{ current_year }}
+            </div>
+            <div>
+                <a href="https://www.india.gov.in" target="_blank" rel="noopener">india.gov.in</a>
+                <a href="#">Sitemap</a>
+                <a href="#">Accessibility</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms</a>
+                <a href="#">Contact Us</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Shared JavaScript -->
+    <script>
+        // Text size adjustment (GIGW accessibility)
+        function changeFontSize(dir) {
+            var html = document.documentElement;
+            var size = parseFloat(getComputedStyle(html).fontSize);
+            if (dir === 0) html.style.fontSize = '100%';
+            else if (dir > 0 && size < 24) html.style.fontSize = (size + 2) + 'px';
+            else if (dir < 0 && size > 12) html.style.fontSize = (size - 2) + 'px';
+        }
+
+        // CSRF token for AJAX requests
+        var csrfToken = '{{ csrf_token() }}';
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add CSRF to all AJAX requests
+            var origFetch = window.fetch;
+            window.fetch = function(url, opts) {
+                opts = opts || {};
+                if (opts.method && opts.method.toUpperCase() !== 'GET') {
+                    opts.headers = opts.headers || {};
+                    if (opts.headers instanceof Headers) {
+                        opts.headers.set('X-CSRFToken', csrfToken);
+                    } else {
+                        opts.headers['X-CSRFToken'] = csrfToken;
+                    }
+                }
+                return origFetch(url, opts);
+            };
+
+            // Notification badge refresh
+            setInterval(function() {
+                fetch('/notifications/unread-count')
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    var badges = document.querySelectorAll('.notif-badge');
+                    badges.forEach(function(b) {
+                        if (d.count > 0) { b.textContent = d.count; b.style.display = ''; }
+                        else { b.style.display = 'none'; }
+                    });
+                }).catch(function() {});
+            }, 60000); // every minute
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

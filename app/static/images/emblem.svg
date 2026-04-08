@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" width="48" height="58">
+  <circle cx="50" cy="40" r="30" fill="#1a237e" opacity="0.15"/>
+  <text x="50" y="45" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a237e">&#x2660;</text>
+  <text x="50" y="75" text-anchor="middle" font-size="7" fill="#1a237e">सत्यमेव जयते</text>
+</svg>

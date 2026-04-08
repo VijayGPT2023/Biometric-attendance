@@ -1,0 +1,300 @@
+/* ================================================================
+   NPC Biometric Attendance - Main Stylesheet
+   GIGW 3.0 Compliant | WCAG 2.1 AA | Responsive
+   ================================================================ */
+
+:root {
+    --primary: #1a237e;
+    --primary-light: #3949ab;
+    --primary-dark: #0d1642;
+    --accent: #ff6f00;
+    --success: #2e7d32;
+    --danger: #c62828;
+    --warning: #f57c00;
+    --info: #1565c0;
+    --text: #333;
+    --text-light: #666;
+    --text-muted: #999;
+    --bg: #f0f2f5;
+    --bg-card: #fff;
+    --border: #e0e0e0;
+    --border-light: #f0f0f0;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 100%; scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+
+/* Skip to content - Accessibility */
+.skip-link {
+    position: absolute; top: -40px; left: 0; background: var(--primary);
+    color: #fff; padding: 8px 16px; z-index: 10000; font-size: 0.9rem;
+    transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
+
+/* ================================================================
+   GIGW Header
+   ================================================================ */
+.gigw-header {
+    background: #fff; border-bottom: 3px solid var(--primary);
+    padding: 8px 0;
+}
+.gigw-header-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+}
+.gigw-logo { display: flex; align-items: center; gap: 12px; }
+.gigw-logo img { height: 48px; }
+.gigw-org { font-size: 0.78rem; color: var(--text-light); line-height: 1.3; }
+.gigw-org .org-name { font-size: 1rem; font-weight: 700; color: var(--primary); }
+.gigw-org .ministry { font-size: 0.72rem; }
+.gigw-tools { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; }
+.gigw-tools a, .gigw-tools button {
+    background: none; border: 1px solid var(--border); color: var(--text);
+    padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;
+    text-decoration: none;
+}
+.gigw-tools a:hover, .gigw-tools button:hover { background: var(--bg); }
+.lang-switch { font-weight: 600; }
+.lang-switch.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ================================================================
+   Navigation Bar
+   ================================================================ */
+.navbar {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: #fff; padding: 0;
+}
+.navbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    min-height: 52px; flex-wrap: wrap;
+}
+.navbar h1 { font-size: 1.05rem; font-weight: 600; }
+.navbar .user-info { font-size: 0.8rem; opacity: 0.85; margin-left: 12px; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-links a {
+    color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.84rem;
+    padding: 8px 14px; border-radius: 6px; transition: background 0.2s;
+    white-space: nowrap;
+}
+.nav-links a:hover { background: rgba(255,255,255,0.15); }
+.nav-links a.active { background: rgba(255,255,255,0.2); }
+.notif-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--danger); color: #fff; font-size: 0.65rem;
+    min-width: 16px; height: 16px; border-radius: 8px; margin-left: 4px;
+    font-weight: 700; padding: 0 4px;
+}
+
+/* ================================================================
+   Layout
+   ================================================================ */
+.container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+.card {
+    background: var(--bg-card); border-radius: var(--radius);
+    padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px;
+}
+.card h2 {
+    font-size: 1.05rem; margin-bottom: 16px;
+    border-bottom: 2px solid var(--primary); padding-bottom: 8px;
+}
+.card h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--primary); }
+
+/* ================================================================
+   Forms
+   ================================================================ */
+.form-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.form-group { flex: 1; min-width: 160px; }
+label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.82rem; }
+input[type="text"], input[type="password"], input[type="email"],
+input[type="number"], input[type="time"], input[type="date"],
+input[type="file"], select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 0.9rem; font-family: var(--font);
+    transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26,35,126,0.1);
+}
+textarea { resize: vertical; min-height: 60px; }
+select[multiple] { min-height: 80px; }
+
+/* ================================================================
+   Buttons
+   ================================================================ */
+.btn {
+    display: inline-block; padding: 9px 20px; border: none; border-radius: 6px;
+    font-size: 0.88rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    transition: all 0.15s; font-family: var(--font); text-align: center;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: #fff; }
+.btn-primary:hover { box-shadow: 0 4px 12px rgba(26,35,126,0.3); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-warning { background: var(--warning); color: #fff; }
+.btn-info { background: var(--info); color: #fff; }
+.btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+.btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+.btn-block { display: block; width: 100%; }
+
+/* ================================================================
+   Tables
+   ================================================================ */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+th {
+    background: #f5f5f5; padding: 10px 8px; text-align: left;
+    font-weight: 600; color: #555; border-bottom: 2px solid var(--border);
+    white-space: nowrap; font-size: 0.78rem;
+}
+td { padding: 9px 8px; border-bottom: 1px solid var(--border-light); }
+tr:hover td { background: #f8f8ff; }
+th.center, td.center { text-align: center; }
+td:first-child { font-weight: 500; }
+
+/* ================================================================
+   Badges & Status
+   ================================================================ */
+.badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 0.7rem; font-weight: 600; color: #fff;
+}
+.badge-pending { background: #bdbdbd; }
+.badge-submitted { background: var(--info); }
+.badge-query { background: var(--warning); }
+.badge-accepted { background: var(--success); }
+.badge-declined { background: var(--danger); }
+.badge-admin { background: var(--danger); }
+.badge-head { background: var(--warning); }
+.badge-employee { background: var(--success); }
+
+.text-danger { color: var(--danger); font-weight: 700; }
+.text-success { color: var(--success); font-weight: 700; }
+.text-warn { color: var(--warning); font-weight: 600; }
+.text-muted { color: var(--text-muted); }
+
+/* ================================================================
+   Flash Messages
+   ================================================================ */
+.flash {
+    padding: 12px 18px; border-radius: 8px; margin-bottom: 16px;
+    font-size: 0.9rem; border: 1px solid;
+}
+.flash-success, .flash { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+.flash-warning { background: #fff3cd; color: #856404; border-color: #ffc107; }
+.flash-danger { background: #f8d7da; color: #842029; border-color: #f1aeb5; }
+.flash-info { background: #cce5ff; color: #004085; border-color: #b8daff; }
+
+/* ================================================================
+   Stats Cards
+   ================================================================ */
+.stats-row { display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat-card {
+    flex: 1; min-width: 120px; padding: 16px; border-radius: var(--radius);
+    text-align: center; color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+.stat-card .number { font-size: 1.8rem; font-weight: 700; }
+.stat-card .label { font-size: 0.78rem; opacity: 0.9; margin-top: 2px; }
+.stat-card.green { background: linear-gradient(135deg, var(--success), #388e3c); }
+.stat-card.orange { background: linear-gradient(135deg, var(--warning), #e65100); }
+.stat-card.red { background: linear-gradient(135deg, var(--danger), #b71c1c); }
+
+/* ================================================================
+   Info Bar
+   ================================================================ */
+.info-bar {
+    display: flex; flex-wrap: wrap; gap: 20px; background: #e8eaf6;
+    border: 1px solid #c5cae9; padding: 12px 20px; border-radius: var(--radius);
+    margin-bottom: 20px; font-size: 0.86rem; align-items: center;
+}
+.info-bar strong { color: var(--primary); }
+
+/* ================================================================
+   Department Sections
+   ================================================================ */
+.dept-section { margin-bottom: 24px; }
+.dept-header {
+    background: var(--bg-card); padding: 14px 20px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: 3px solid var(--primary);
+}
+.dept-header h2 { font-size: 1.05rem; margin: 0; border: none; padding: 0; }
+.dept-header .count { color: var(--text-muted); font-size: 0.85rem; font-weight: 400; }
+
+/* ================================================================
+   GIGW Footer
+   ================================================================ */
+.gigw-footer {
+    background: var(--primary-dark); color: rgba(255,255,255,0.8);
+    padding: 16px 0; margin-top: 40px; font-size: 0.78rem;
+}
+.gigw-footer-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 20px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.gigw-footer a { color: rgba(255,255,255,0.7); text-decoration: none; margin: 0 8px; }
+.gigw-footer a:hover { color: #fff; text-decoration: underline; }
+
+/* ================================================================
+   Print Styles
+   ================================================================ */
+@media print {
+    .gigw-header, .navbar, .gigw-footer, .btn, .nav-links,
+    .skip-link, .gigw-tools { display: none !important; }
+    body { background: #fff; padding: 10px; }
+    .container { max-width: 100%; padding: 0; margin: 0; }
+    .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+    table { font-size: 9px; }
+}
+
+/* ================================================================
+   Responsive
+   ================================================================ */
+@media (max-width: 768px) {
+    .gigw-header-inner { flex-direction: column; text-align: center; }
+    .gigw-tools { justify-content: center; flex-wrap: wrap; }
+    .navbar-inner { flex-direction: column; padding: 10px 16px; gap: 6px; }
+    .nav-links { flex-wrap: wrap; justify-content: center; }
+    .nav-links a { padding: 6px 10px; font-size: 0.8rem; }
+    .container { padding: 0 12px; }
+    .card { padding: 16px; }
+    .form-row { flex-direction: column; }
+    .form-group { min-width: 100%; }
+    .stats-row { flex-direction: column; }
+    .stat-card { min-width: 100%; }
+    .info-bar { flex-direction: column; gap: 8px; }
+    .gigw-footer-inner { flex-direction: column; text-align: center; }
+    .table-wrap { margin: 0 -16px; padding: 0 16px; }
+    table { min-width: 600px; }
+}
+
+@media (max-width: 480px) {
+    .gigw-logo img { height: 36px; }
+    .gigw-org .org-name { font-size: 0.88rem; }
+    .navbar h1 { font-size: 0.92rem; }
+    .card { padding: 12px; }
+}
+
+/* Accessibility: high contrast mode */
+@media (prefers-contrast: high) {
+    :root {
+        --primary: #000080;
+        --text: #000;
+        --bg: #fff;
+        --border: #000;
+    }
+}
+
+/* Accessibility: reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}
