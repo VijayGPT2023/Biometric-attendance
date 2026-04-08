@@ -1,7 +1,6 @@
 """Reports: printable views, PDF and Excel export."""
 import os
 import json
-import io
 from datetime import datetime
 from flask import render_template, request, current_app, send_file, flash, redirect, url_for
 from flask_login import login_required, current_user
@@ -157,7 +156,7 @@ def export_excel(session_uuid):
 @reports_bp.route('/<session_uuid>/pdf')
 @login_required
 def export_pdf(session_uuid):
-    """Export attendance report as PDF."""
+    """Render a print-friendly PDF report page (use browser Print > Save as PDF)."""
     result = _load_session_data(session_uuid)
     if not result[0]:
         flash('Session not found.')
@@ -170,25 +169,12 @@ def export_pdf(session_uuid):
     holidays = sorted(_get_holidays_for_range(start_date, end_date, office_id))
     holiday_names = _get_holiday_names(start_date, end_date, office_id)
 
-    html = render_template('reports/pdf_report.html',
+    AuditLog.log('export_report', user_id=current_user.id,
+                 resource_type='upload_session', resource_id=session_uuid,
+                 details='pdf')
+
+    return render_template('reports/pdf_report.html',
                            dept_groups=dept_groups, results=results,
                            start_date=start_date, end_date=end_date,
                            params=params, holidays=holidays,
                            holiday_names=holiday_names)
-
-    try:
-        from xhtml2pdf import pisa
-        output = io.BytesIO()
-        pisa.CreatePDF(io.StringIO(html), dest=output)
-        output.seek(0)
-
-        AuditLog.log('export_report', user_id=current_user.id,
-                     resource_type='upload_session', resource_id=session_uuid,
-                     details='pdf')
-
-        filename = f'Attendance_Report_{start_date.strftime("%Y%m%d")}_{end_date.strftime("%Y%m%d")}.pdf'
-        return send_file(output, as_attachment=True, download_name=filename,
-                         mimetype='application/pdf')
-    except ImportError:
-        flash('PDF export requires xhtml2pdf package. Please install it.')
-        return redirect(url_for('reports.view_report', session_uuid=session_uuid))
