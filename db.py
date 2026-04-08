@@ -115,7 +115,6 @@ class PgConnection:
 
     def __init__(self, conn):
         self._conn = conn
-        self._conn.autocommit = False
 
     def execute(self, sql, params=None):
         sql_pg = translate_sql(sql)
@@ -147,10 +146,12 @@ class PgConnection:
         self._conn.commit()
 
     def commit(self):
-        self._conn.commit()
+        if not self._conn.autocommit:
+            self._conn.commit()
 
     def rollback(self):
-        self._conn.rollback()
+        if not self._conn.autocommit:
+            self._conn.rollback()
 
     def close(self):
         self._conn.close()
@@ -199,6 +200,7 @@ def get_db(app, g):
         db_url = os.environ.get('DATABASE_URL')
         if db_url and HAS_PG:
             conn = psycopg2.connect(db_url)
+            conn.autocommit = True
             g.db = PgConnection(conn)
             logger.debug("Connected to PostgreSQL")
         else:

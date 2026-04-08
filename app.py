@@ -135,10 +135,18 @@ def close_db(exception):
 
 
 def init_db():
-    if is_postgres():
-        _init_db_postgres()
-    else:
-        _init_db_sqlite()
+    try:
+        if is_postgres():
+            app.logger.info(f"Initializing PostgreSQL database...")
+            _init_db_postgres()
+            app.logger.info("PostgreSQL init complete.")
+        else:
+            app.logger.info("Initializing SQLite database...")
+            _init_db_sqlite()
+            app.logger.info("SQLite init complete.")
+    except Exception as e:
+        app.logger.error(f"Database init failed: {e}", exc_info=True)
+        # Don't crash the app - it can still serve the health endpoint
 
 
 SCHEMA_SQL_SQLITE = '''
@@ -270,9 +278,12 @@ def _init_db_sqlite():
 
 def _init_db_postgres():
     import psycopg2
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    db_url = os.environ['DATABASE_URL']
+    app.logger.info(f"Connecting to PostgreSQL: {db_url[:30]}...")
+    conn = psycopg2.connect(db_url)
     conn.autocommit = True
     cur = conn.cursor()
+    app.logger.info("PostgreSQL connected. Creating tables...")
 
     cur.execute('''
         CREATE TABLE IF NOT EXISTS offices (
@@ -1283,6 +1294,16 @@ def auto_create_departments(results):
     for dept in depts:
         db.execute('INSERT OR IGNORE INTO departments (name) VALUES (?)', (dept,))
     db.commit()
+
+
+# ================================================================
+#  HEALTH CHECK
+# ================================================================
+
+@app.route('/health')
+def health():
+    """Health endpoint for Railway - doesn't require DB."""
+    return jsonify({'status': 'ok', 'db': 'postgres' if is_postgres() else 'sqlite'})
 
 
 # ================================================================
