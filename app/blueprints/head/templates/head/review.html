@@ -83,7 +83,7 @@
         <h1>Review Employee Justifications</h1>
         <div class="nav-links">
             <a href="/head/">Dashboard</a>
-            {% if session.role == 'admin' %}<a href="/admin/">Admin</a>{% endif %}
+            {% if current_user.role in ('super_admin', 'admin') %}<a href="/admin/">Admin</a>{% endif %}
             <a href="/logout">Logout</a>
         </div>
     </div>

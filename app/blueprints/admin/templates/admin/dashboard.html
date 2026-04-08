@@ -70,7 +70,7 @@
     <div class="navbar">
         <div>
             <h1>Biometric Attendance - Admin</h1>
-            <span class="user-info">Welcome, {{ session.user_name }}</span>
+            <span class="user-info">Welcome, {{ current_user.name }}</span>
         </div>
         <div class="nav-links">
             <a href="/admin/">Dashboard</a>
@@ -163,7 +163,7 @@
                     {% for s in sessions %}
                     <tr>
                         <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
-                        <td>{{ s.created_at[:16] }}</td>
+                        <td>{{ s.created_at.strftime("%d-%b %H:%M") if s.created_at else "" }}</td>
                         <td><span class="badge badge-employee">{{ s.status }}</span></td>
                         <td>
                             <a href="/admin/report/{{ s.session_uuid }}" class="btn btn-sm btn-blue">View Report</a>

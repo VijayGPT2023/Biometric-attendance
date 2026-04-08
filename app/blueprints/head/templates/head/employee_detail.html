@@ -63,7 +63,7 @@
         <div class="nav-links">
             <a href="/head/">Dashboard</a>
             <a href="/head/review/{{ session_uuid }}">Review All</a>
-            {% if session.role == 'admin' %}<a href="/admin/">Admin</a>{% endif %}
+            {% if current_user.role in ('super_admin', 'admin') %}<a href="/admin/">Admin</a>{% endif %}
             <a href="/logout">Logout</a>
         </div>
     </div>

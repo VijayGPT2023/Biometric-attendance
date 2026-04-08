@@ -95,11 +95,11 @@
     <div class="navbar">
         <div>
             <h1>Biometric Attendance - Department Head</h1>
-            <span class="user-info">{{ session.user_name }}</span>
+            <span class="user-info">{{ current_user.name }}</span>
         </div>
         <div class="nav-links">
             <a href="/head/">Dashboard</a>
-            {% if session.role == 'admin' %}<a href="/admin/">Admin</a>{% endif %}
+            {% if current_user.role in ('super_admin', 'admin') %}<a href="/admin/">Admin</a>{% endif %}
             <a href="/change-password">Password</a>
             <a href="/logout">Logout</a>
         </div>
@@ -111,7 +111,7 @@
         {% endwith %}
 
         <div class="welcome-box">
-            <h2>Welcome, {{ session.user_name }}</h2>
+            <h2>Welcome, {{ current_user.name }}</h2>
             <p>Review employee attendance and justifications for your departments.</p>
             {% if managed_depts %}
             <div class="dept-tags" style="margin-top: 8px;">
