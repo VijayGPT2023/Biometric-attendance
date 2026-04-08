@@ -114,6 +114,7 @@
         </div>
 
         <form action="/admin/finalize/{{ session_uuid }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% for dept_name, dept_results in dept_groups.items() %}
             <div class="dept-section">
                 <div class="dept-header">

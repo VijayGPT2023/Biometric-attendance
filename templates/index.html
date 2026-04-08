@@ -149,6 +149,7 @@
         </div>
 
         <form action="/analyze" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>Attendance File(s) <span class="hint">— select one or more monthly .xls/.xlsx files</span></label>
                 <input type="file" name="files" accept=".xls,.xlsx" multiple required>

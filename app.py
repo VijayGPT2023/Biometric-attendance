@@ -2,7 +2,9 @@ import os
 import re
 import json
 import uuid
-import sqlite3
+import time
+import logging
+from collections import defaultdict
 from datetime import datetime, date, timedelta
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
@@ -10,8 +12,22 @@ from flask import (Flask, render_template, request, redirect, url_for,
 from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 
+from db import (get_db as _get_db, close_db as _close_db, get_table_columns,
+                IntegrityError, is_postgres)
+
+# ================================================================
+#  APP SETUP
+# ================================================================
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'biometric-attendance-secret-key-2025')
+
+# CSRF Protection
+try:
+    from flask_wtf.csrf import CSRFProtect
+    csrf = CSRFProtect(app)
+except ImportError:
+    csrf = None  # Graceful fallback if flask-wtf not installed
 
 # Use RAILWAY_VOLUME_MOUNT_PATH for persistent storage on Railway, else local
 PERSIST_DIR = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', os.path.dirname(__file__))
@@ -22,6 +38,46 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
+
+# ================================================================
+#  STRUCTURED LOGGING
+# ================================================================
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        entry = {
+            "ts": self.formatTime(record),
+            "level": record.levelname,
+            "msg": record.getMessage(),
+            "module": record.module,
+            "func": record.funcName,
+            "line": record.lineno,
+        }
+        if record.exc_info:
+            entry["exc"] = self.formatException(record.exc_info)
+        return json.dumps(entry)
+
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+app.logger.handlers = [handler]
+app.logger.setLevel(logging.INFO)
+
+# ================================================================
+#  RATE LIMITING (in-memory, per-worker)
+# ================================================================
+
+_login_attempts = defaultdict(list)
+
+def is_rate_limited(ip, max_attempts=5, window_seconds=900):
+    now = time.time()
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < window_seconds]
+    return len(_login_attempts[ip]) >= max_attempts
+
+def record_login_attempt(ip):
+    _login_attempts[ip].append(time.time())
+
+def clear_login_attempts(ip):
+    _login_attempts.pop(ip, None)
 
 
 # ================================================================
@@ -70,22 +126,24 @@ def normalize_dept(name):
 # ================================================================
 
 def get_db():
-    if 'db' not in g:
-        g.db = sqlite3.connect(app.config['DATABASE'])
-        g.db.row_factory = sqlite3.Row
-        g.db.execute('PRAGMA foreign_keys = ON')
-    return g.db
+    return _get_db(app, g)
 
 
 @app.teardown_appcontext
 def close_db(exception):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
+    _close_db(g)
 
 
 def init_db():
-    db = sqlite3.connect(app.config['DATABASE'])
+    if is_postgres():
+        _init_db_postgres()
+    else:
+        _init_db_sqlite()
+
+
+def _init_db_sqlite():
+    import sqlite3 as _sqlite3
+    db = _sqlite3.connect(app.config['DATABASE'])
     db.execute('PRAGMA foreign_keys = ON')
     db.executescript('''
         CREATE TABLE IF NOT EXISTS users (
@@ -147,7 +205,6 @@ def init_db():
             db.execute(f'ALTER TABLE users ADD COLUMN {col} {typedef}')
     db.commit()
 
-    # Create default admin user if not exists
     existing = db.execute('SELECT id FROM users WHERE emp_code = ?', ('admin',)).fetchone()
     if not existing:
         db.execute(
@@ -156,6 +213,95 @@ def init_db():
         db.commit()
         seed_users(db)
     db.close()
+
+
+def _init_db_postgres():
+    import psycopg2
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    # Create tables
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            emp_code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'employee',
+            is_active INTEGER DEFAULT 1,
+            username TEXT DEFAULT '',
+            must_change_password INTEGER DEFAULT 1,
+            active_session_id TEXT DEFAULT '',
+            last_activity TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS departments (
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS head_departments (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            dept_id INTEGER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, dept_id)
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS upload_sessions (
+            id SERIAL PRIMARY KEY,
+            session_uuid TEXT UNIQUE NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            params_json TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS justifications (
+            id SERIAL PRIMARY KEY,
+            session_uuid TEXT NOT NULL,
+            emp_code TEXT NOT NULL,
+            anomaly_date TEXT NOT NULL,
+            anomaly_types TEXT DEFAULT '',
+            justification TEXT DEFAULT '',
+            status TEXT DEFAULT 'pending',
+            head_remark TEXT DEFAULT '',
+            admin_remark TEXT DEFAULT '',
+            finalized INTEGER DEFAULT 0,
+            final_decision TEXT DEFAULT '',
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(session_uuid, emp_code, anomaly_date)
+        )
+    ''')
+
+    # Migrate: add columns if missing
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'")
+    existing_cols = [r[0] for r in cur.fetchall()]
+    for col, typedef in [('must_change_password', 'INTEGER DEFAULT 1'),
+                          ('active_session_id', "TEXT DEFAULT ''"),
+                          ('last_activity', "TEXT DEFAULT ''"),
+                          ('username', "TEXT DEFAULT ''")]:
+        if col not in existing_cols:
+            cur.execute(f'ALTER TABLE users ADD COLUMN {col} {typedef}')
+
+    # Seed admin if not exists
+    cur.execute("SELECT id FROM users WHERE emp_code = %s", ('admin',))
+    if not cur.fetchone():
+        cur.execute(
+            "INSERT INTO users (emp_code, name, password_hash, role, username) VALUES (%s, %s, %s, %s, %s)",
+            ('admin', 'Administrator', generate_password_hash('admin123'), 'admin', 'admin'))
+        # Seed all users using a temporary wrapper
+        from db import PgConnection
+        pg_wrapped = PgConnection(conn)
+        pg_wrapped._conn.autocommit = True
+        seed_users(pg_wrapped)
+
+    conn.close()
 
 
 def seed_users(db):
@@ -1047,6 +1193,12 @@ def auto_create_departments(results):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if is_rate_limited(client_ip):
+            flash('Too many login attempts. Please try again after 15 minutes.')
+            app.logger.warning(f"Rate limited login from {client_ip}")
+            return render_template('login.html'), 429
+
         login_id = request.form.get('username', '').strip().lower()
         password = request.form.get('password', '')
         db = get_db()
@@ -1082,12 +1234,16 @@ def login():
             db.execute('UPDATE users SET active_session_id = ?, last_activity = ? WHERE id = ?',
                        (new_session_id, datetime.now().isoformat(), user['id']))
             db.commit()
+            clear_login_attempts(client_ip)
+            app.logger.info(f"Login success: {user['username']} ({user['role']}) from {client_ip}")
 
             if user['must_change_password']:
                 flash('Welcome! Please change your default password to continue.')
                 return redirect(url_for('change_password'))
 
             return redirect(url_for('dashboard'))
+        record_login_attempt(client_ip)
+        app.logger.info(f"Failed login attempt for '{login_id}' from {client_ip}")
         flash('Invalid Username or Password')
     return render_template('login.html')
 
@@ -1420,7 +1576,7 @@ def admin_add_user():
                            (user_id, int(did)))
         db.commit()
         flash(f'User {name} added. Username: {username} ({role})')
-    except sqlite3.IntegrityError:
+    except IntegrityError:
         flash(f'Employee code "{emp_code}" already exists.')
 
     return redirect(url_for('admin_users'))
@@ -1495,7 +1651,7 @@ def admin_add_dept():
             db.execute('INSERT INTO departments (name) VALUES (?)', (name,))
             db.commit()
             flash(f'Department "{name}" added.')
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             flash(f'Department "{name}" already exists.')
     return redirect(url_for('admin_users'))
 

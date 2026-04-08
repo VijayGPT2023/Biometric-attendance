@@ -77,6 +77,7 @@
         <div class="card">
             <h2>Add Department</h2>
             <form action="/admin/departments/add" method="post" style="display:flex; gap:12px; align-items:flex-end;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label>Department Name</label>
                     <input type="text" name="dept_name" placeholder="e.g. AB Group" required>
@@ -97,6 +98,7 @@
         <div class="card">
             <h2>Add User</h2>
             <form action="/admin/users/add" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Employee Code</label>
@@ -167,10 +169,12 @@
                             {% if u.emp_code != 'admin' %}
                             <form action="/admin/users/reset-password/{{ u.id }}" method="post" style="display:inline;"
                                   onsubmit="return confirm('Reset password for {{ u.name }}? Password will be set to npc123 and user will be forced to change it on next login.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-green" title="Reset to npc123">Reset PW</button>
                             </form>
                             <form action="/admin/users/delete/{{ u.id }}" method="post" style="display:inline;"
                                   onsubmit="return confirm('Delete user {{ u.name }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-red">Delete</button>
                             </form>
                             {% endif %}
@@ -180,6 +184,7 @@
                         <td colspan="7" style="padding:0;">
                             <div class="edit-form" id="edit_{{ u.id }}">
                                 <form action="/admin/users/edit/{{ u.id }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label>Name</label>

@@ -106,6 +106,7 @@
 </head>
 <body>
 <form action="/hod-submit/{{ session_id }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="header">
         <div>
             <h1>HoD Review - Mark Permitted Anomalies</h1>

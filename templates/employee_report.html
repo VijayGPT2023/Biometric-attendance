@@ -125,6 +125,7 @@
             <h2>Anomaly Details &amp; Justifications</h2>
             {% if emp.anomaly_details %}
             <form action="/employee/justify/{{ session_uuid }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <table>
                     <thead>
                         <tr>

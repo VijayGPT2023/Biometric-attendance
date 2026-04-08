@@ -108,6 +108,7 @@
         <div class="card">
             <h2>Upload Biometric Data</h2>
             <form action="/admin/upload" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group" style="margin-bottom: 14px;">
                     <label>Attendance File(s) (.xls / .xlsx)</label>
                     <input type="file" name="files" accept=".xls,.xlsx" multiple required>
