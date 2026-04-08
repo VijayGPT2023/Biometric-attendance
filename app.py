@@ -141,68 +141,121 @@ def init_db():
         _init_db_sqlite()
 
 
+SCHEMA_SQL_SQLITE = '''
+    CREATE TABLE IF NOT EXISTS offices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        code TEXT UNIQUE NOT NULL,
+        location TEXT DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emp_code TEXT NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'employee',
+        is_active INTEGER DEFAULT 1,
+        username TEXT DEFAULT '',
+        must_change_password INTEGER DEFAULT 1,
+        active_session_id TEXT DEFAULT '',
+        last_activity TEXT DEFAULT '',
+        office_id INTEGER DEFAULT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(emp_code, office_id)
+    );
+    CREATE TABLE IF NOT EXISTS departments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        office_id INTEGER DEFAULT NULL,
+        UNIQUE(name, office_id)
+    );
+    CREATE TABLE IF NOT EXISTS head_departments (
+        user_id INTEGER NOT NULL,
+        dept_id INTEGER NOT NULL,
+        PRIMARY KEY (user_id, dept_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (dept_id) REFERENCES departments(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS upload_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_uuid TEXT UNIQUE NOT NULL,
+        office_id INTEGER DEFAULT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        params_json TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS justifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_uuid TEXT NOT NULL,
+        emp_code TEXT NOT NULL,
+        anomaly_date TEXT NOT NULL,
+        anomaly_types TEXT DEFAULT '',
+        justification TEXT DEFAULT '',
+        status TEXT DEFAULT 'pending',
+        head_remark TEXT DEFAULT '',
+        admin_remark TEXT DEFAULT '',
+        finalized INTEGER DEFAULT 0,
+        final_decision TEXT DEFAULT '',
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_uuid, emp_code, anomaly_date)
+    );
+    CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        action TEXT NOT NULL,
+        details TEXT DEFAULT '',
+        ip_address TEXT DEFAULT '',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+'''
+
+
 def _init_db_sqlite():
     import sqlite3 as _sqlite3
     db = _sqlite3.connect(app.config['DATABASE'])
     db.execute('PRAGMA foreign_keys = ON')
-    db.executescript('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            emp_code TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'employee',
-            is_active INTEGER DEFAULT 1,
-            username TEXT DEFAULT '',
-            must_change_password INTEGER DEFAULT 1,
-            active_session_id TEXT DEFAULT '',
-            last_activity TEXT DEFAULT '',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS departments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS head_departments (
-            user_id INTEGER NOT NULL,
-            dept_id INTEGER NOT NULL,
-            PRIMARY KEY (user_id, dept_id),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (dept_id) REFERENCES departments(id) ON DELETE CASCADE
-        );
-        CREATE TABLE IF NOT EXISTS upload_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_uuid TEXT UNIQUE NOT NULL,
-            start_date TEXT NOT NULL,
-            end_date TEXT NOT NULL,
-            params_json TEXT NOT NULL,
-            status TEXT DEFAULT 'active',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS justifications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_uuid TEXT NOT NULL,
-            emp_code TEXT NOT NULL,
-            anomaly_date TEXT NOT NULL,
-            anomaly_types TEXT DEFAULT '',
-            justification TEXT DEFAULT '',
-            status TEXT DEFAULT 'pending',
-            head_remark TEXT DEFAULT '',
-            admin_remark TEXT DEFAULT '',
-            finalized INTEGER DEFAULT 0,
-            final_decision TEXT DEFAULT '',
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(session_uuid, emp_code, anomaly_date)
-        );
-    ''')
+    db.executescript(SCHEMA_SQL_SQLITE)
+
     # Migrate: add columns if missing (for DBs created by older versions)
     existing_cols = [r[1] for r in db.execute('PRAGMA table_info(users)').fetchall()]
     for col, typedef in [('must_change_password', 'INTEGER DEFAULT 1'),
                           ('active_session_id', "TEXT DEFAULT ''"),
                           ('last_activity', "TEXT DEFAULT ''"),
-                          ('username', "TEXT DEFAULT ''")]:
+                          ('username', "TEXT DEFAULT ''"),
+                          ('office_id', 'INTEGER DEFAULT NULL')]:
         if col not in existing_cols:
             db.execute(f'ALTER TABLE users ADD COLUMN {col} {typedef}')
+
+    # Migrate offices table
+    db.execute("CREATE TABLE IF NOT EXISTS offices (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, code TEXT UNIQUE NOT NULL, location TEXT DEFAULT '')")
+    db.execute("CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT NOT NULL, details TEXT DEFAULT '', ip_address TEXT DEFAULT '', created_at TEXT DEFAULT CURRENT_TIMESTAMP)")
+
+    # Add office_id to upload_sessions if missing
+    sess_cols = [r[1] for r in db.execute('PRAGMA table_info(upload_sessions)').fetchall()]
+    if 'office_id' not in sess_cols:
+        db.execute('ALTER TABLE upload_sessions ADD COLUMN office_id INTEGER DEFAULT NULL')
+
+    # Add office_id to departments if missing
+    dept_cols = [r[1] for r in db.execute('PRAGMA table_info(departments)').fetchall()]
+    if 'office_id' not in dept_cols:
+        db.execute('ALTER TABLE departments ADD COLUMN office_id INTEGER DEFAULT NULL')
+
+    db.commit()
+
+    # Create default HQ office
+    existing_office = db.execute("SELECT id FROM offices WHERE code = ?", ('HQ',)).fetchone()
+    if not existing_office:
+        db.execute("INSERT INTO offices (name, code, location) VALUES (?, ?, ?)",
+                   ('NPC Headquarters', 'HQ', 'New Delhi'))
+        db.commit()
+
+    # Assign existing departments to HQ office
+    hq_id = db.execute("SELECT id FROM offices WHERE code = ?", ('HQ',)).fetchone()[0]
+    db.execute("UPDATE departments SET office_id = ? WHERE office_id IS NULL", (hq_id,))
+    db.execute("UPDATE users SET office_id = ? WHERE office_id IS NULL AND emp_code != 'admin'", (hq_id,))
+    db.execute("UPDATE upload_sessions SET office_id = ? WHERE office_id IS NULL", (hq_id,))
     db.commit()
 
     existing = db.execute('SELECT id FROM users WHERE emp_code = ?', ('admin',)).fetchone()
@@ -221,11 +274,18 @@ def _init_db_postgres():
     conn.autocommit = True
     cur = conn.cursor()
 
-    # Create tables
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS offices (
+            id SERIAL PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            code TEXT UNIQUE NOT NULL,
+            location TEXT DEFAULT ''
+        )
+    ''')
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
-            emp_code TEXT UNIQUE NOT NULL,
+            emp_code TEXT NOT NULL,
             name TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'employee',
@@ -234,13 +294,17 @@ def _init_db_postgres():
             must_change_password INTEGER DEFAULT 1,
             active_session_id TEXT DEFAULT '',
             last_activity TEXT DEFAULT '',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            office_id INTEGER DEFAULT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(emp_code, office_id)
         )
     ''')
     cur.execute('''
         CREATE TABLE IF NOT EXISTS departments (
             id SERIAL PRIMARY KEY,
-            name TEXT UNIQUE NOT NULL
+            name TEXT NOT NULL,
+            office_id INTEGER DEFAULT NULL,
+            UNIQUE(name, office_id)
         )
     ''')
     cur.execute('''
@@ -254,6 +318,7 @@ def _init_db_postgres():
         CREATE TABLE IF NOT EXISTS upload_sessions (
             id SERIAL PRIMARY KEY,
             session_uuid TEXT UNIQUE NOT NULL,
+            office_id INTEGER DEFAULT NULL,
             start_date TEXT NOT NULL,
             end_date TEXT NOT NULL,
             params_json TEXT NOT NULL,
@@ -278,6 +343,16 @@ def _init_db_postgres():
             UNIQUE(session_uuid, emp_code, anomaly_date)
         )
     ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            action TEXT NOT NULL,
+            details TEXT DEFAULT '',
+            ip_address TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
 
     # Migrate: add columns if missing
     cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users'")
@@ -285,9 +360,34 @@ def _init_db_postgres():
     for col, typedef in [('must_change_password', 'INTEGER DEFAULT 1'),
                           ('active_session_id', "TEXT DEFAULT ''"),
                           ('last_activity', "TEXT DEFAULT ''"),
-                          ('username', "TEXT DEFAULT ''")]:
+                          ('username', "TEXT DEFAULT ''"),
+                          ('office_id', 'INTEGER DEFAULT NULL')]:
         if col not in existing_cols:
             cur.execute(f'ALTER TABLE users ADD COLUMN {col} {typedef}')
+
+    # Migrate departments
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'departments'")
+    dept_cols = [r[0] for r in cur.fetchall()]
+    if 'office_id' not in dept_cols:
+        cur.execute("ALTER TABLE departments ADD COLUMN office_id INTEGER DEFAULT NULL")
+
+    # Migrate upload_sessions
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'upload_sessions'")
+    sess_cols = [r[0] for r in cur.fetchall()]
+    if 'office_id' not in sess_cols:
+        cur.execute("ALTER TABLE upload_sessions ADD COLUMN office_id INTEGER DEFAULT NULL")
+
+    # Create default HQ office
+    cur.execute("SELECT id FROM offices WHERE code = %s", ('HQ',))
+    if not cur.fetchone():
+        cur.execute("INSERT INTO offices (name, code, location) VALUES (%s, %s, %s)",
+                    ('NPC Headquarters', 'HQ', 'New Delhi'))
+
+    cur.execute("SELECT id FROM offices WHERE code = %s", ('HQ',))
+    hq_id = cur.fetchone()[0]
+    cur.execute("UPDATE departments SET office_id = %s WHERE office_id IS NULL", (hq_id,))
+    cur.execute("UPDATE users SET office_id = %s WHERE office_id IS NULL AND emp_code != 'admin'", (hq_id,))
+    cur.execute("UPDATE upload_sessions SET office_id = %s WHERE office_id IS NULL", (hq_id,))
 
     # Seed admin if not exists
     cur.execute("SELECT id FROM users WHERE emp_code = %s", ('admin',))
@@ -295,7 +395,6 @@ def _init_db_postgres():
         cur.execute(
             "INSERT INTO users (emp_code, name, password_hash, role, username) VALUES (%s, %s, %s, %s, %s)",
             ('admin', 'Administrator', generate_password_hash('admin123'), 'admin', 'admin'))
-        # Seed all users using a temporary wrapper
         from db import PgConnection
         pg_wrapped = PgConnection(conn)
         pg_wrapped._conn.autocommit = True
@@ -1294,8 +1393,10 @@ def admin_dashboard():
         'SELECT * FROM upload_sessions ORDER BY created_at DESC').fetchall()
     users = db.execute('SELECT * FROM users ORDER BY role, name').fetchall()
     departments = db.execute('SELECT * FROM departments ORDER BY name').fetchall()
+    offices = db.execute('SELECT * FROM offices ORDER BY name').fetchall()
     return render_template('admin_dashboard.html',
-                           sessions=sessions, users=users, departments=departments)
+                           sessions=sessions, users=users, departments=departments,
+                           offices=offices)
 
 
 @app.route('/admin/upload', methods=['POST'])
@@ -1305,6 +1406,12 @@ def admin_upload():
     if not files or all(f.filename == '' for f in files):
         flash('No file uploaded')
         return redirect(url_for('admin_dashboard'))
+
+    office_id = request.form.get('office_id', '')
+    if not office_id:
+        flash('Please select an office.')
+        return redirect(url_for('admin_dashboard'))
+    office_id = int(office_id)
 
     try:
         late_h, late_m = map(int, request.form.get('late_time', '10:00').split(':'))
@@ -1376,9 +1483,9 @@ def admin_upload():
     # Save to database
     db = get_db()
     db.execute('''
-        INSERT INTO upload_sessions (session_uuid, start_date, end_date, params_json)
-        VALUES (?, ?, ?, ?)
-    ''', (session_id, start_date.isoformat(), end_date.isoformat(), json.dumps(params)))
+        INSERT INTO upload_sessions (session_uuid, start_date, end_date, params_json, office_id)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (session_id, start_date.isoformat(), end_date.isoformat(), json.dumps(params), office_id))
     db.commit()
 
     # Auto-create departments and justification rows
@@ -1518,9 +1625,10 @@ def admin_users():
     ''').fetchall()
     for row in rows:
         head_depts.setdefault(row['user_id'], []).append(row['name'])
+    offices = db.execute('SELECT * FROM offices ORDER BY name').fetchall()
     return render_template('admin_users.html',
                            users=users, departments=departments,
-                           head_depts=head_depts)
+                           head_depts=head_depts, offices=offices)
 
 
 def generate_username(name, db):
@@ -1645,14 +1753,37 @@ def admin_delete_user(user_id):
 @role_required('admin')
 def admin_add_dept():
     name = request.form.get('dept_name', '').strip()
+    office_id = request.form.get('office_id', '')
     if name:
         db = get_db()
         try:
-            db.execute('INSERT INTO departments (name) VALUES (?)', (name,))
+            if office_id:
+                db.execute('INSERT INTO departments (name, office_id) VALUES (?, ?)',
+                           (name, int(office_id)))
+            else:
+                db.execute('INSERT INTO departments (name) VALUES (?)', (name,))
             db.commit()
             flash(f'Department "{name}" added.')
         except IntegrityError:
             flash(f'Department "{name}" already exists.')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/offices/add', methods=['POST'])
+@role_required('admin')
+def admin_add_office():
+    name = request.form.get('office_name', '').strip()
+    code = request.form.get('office_code', '').strip().upper()
+    location = request.form.get('office_location', '').strip()
+    if name and code:
+        db = get_db()
+        try:
+            db.execute('INSERT INTO offices (name, code, location) VALUES (?, ?, ?)',
+                       (name, code, location))
+            db.commit()
+            flash(f'Office "{name}" ({code}) added.')
+        except IntegrityError:
+            flash(f'Office "{name}" or code "{code}" already exists.')
     return redirect(url_for('admin_users'))
 
 

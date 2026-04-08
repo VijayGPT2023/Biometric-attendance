@@ -109,9 +109,20 @@
             <h2>Upload Biometric Data</h2>
             <form action="/admin/upload" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="form-group" style="margin-bottom: 14px;">
-                    <label>Attendance File(s) (.xls / .xlsx)</label>
-                    <input type="file" name="files" accept=".xls,.xlsx" multiple required>
+                <div class="form-row" style="margin-bottom: 14px;">
+                    <div class="form-group" style="flex:2;">
+                        <label>Attendance File(s) (.xls / .xlsx)</label>
+                        <input type="file" name="files" accept=".xls,.xlsx" multiple required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Office</label>
+                        <select name="office_id" required style="width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.9rem;">
+                            <option value="">-- Select Office --</option>
+                            {% for o in offices %}
+                            <option value="{{ o.id }}">{{ o.name }} ({{ o.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">

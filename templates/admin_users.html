@@ -73,14 +73,52 @@
         {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
         {% endwith %}
 
+        <!-- Add Office -->
+        <div class="card">
+            <h2>Manage Offices</h2>
+            <form action="/admin/offices/add" method="post" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label>Office Name</label>
+                    <input type="text" name="office_name" placeholder="e.g. Regional Office Mumbai" required>
+                </div>
+                <div class="form-group">
+                    <label>Code</label>
+                    <input type="text" name="office_code" placeholder="e.g. RO-MUM" required style="text-transform:uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" name="office_location" placeholder="e.g. Mumbai">
+                </div>
+                <button type="submit" class="btn btn-green">Add Office</button>
+            </form>
+            {% if offices is defined and offices %}
+            <div style="margin-top: 12px;">
+                <strong style="font-size:0.82rem; color:#555;">Offices:</strong>
+                <div class="dept-tags" style="margin-top:4px;">
+                    {% for o in offices %}<span>{{ o.name }} ({{ o.code }})</span>{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Add Department -->
         <div class="card">
             <h2>Add Department</h2>
-            <form action="/admin/departments/add" method="post" style="display:flex; gap:12px; align-items:flex-end;">
+            <form action="/admin/departments/add" method="post" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label>Department Name</label>
                     <input type="text" name="dept_name" placeholder="e.g. AB Group" required>
+                </div>
+                <div class="form-group">
+                    <label>Office</label>
+                    <select name="office_id" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                        <option value="">-- No Office --</option>
+                        {% if offices is defined %}
+                        {% for o in offices %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}
+                        {% endif %}
+                    </select>
                 </div>
                 <button type="submit" class="btn btn-green">Add Department</button>
             </form>
