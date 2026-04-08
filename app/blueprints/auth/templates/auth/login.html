@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - NPC Biometric Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .login-card { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 40px; max-width: 420px; width: 100%; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header img { height: 48px; margin-bottom: 8px; }
+        .header h1 { font-size: 1.3rem; color: #1a237e; }
+        .header .org { font-size: 0.82rem; color: #666; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 600; color: #444; margin-bottom: 4px; font-size: 0.88rem; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 11px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        input:focus { outline: none; border-color: #1a237e; box-shadow: 0 0 0 3px rgba(26,35,126,0.15); }
+        .btn { display: block; width: 100%; padding: 13px; background: linear-gradient(135deg, #1a237e, #3949ab); color: #fff; border: none; border-radius: 8px; font-size: 1.05rem; font-weight: 600; cursor: pointer; }
+        .btn:hover { box-shadow: 0 6px 20px rgba(26,35,126,0.4); }
+        .flash { background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem; }
+        .links { text-align: center; margin-top: 14px; font-size: 0.85rem; }
+        .links a { color: #1a237e; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+        @media (max-width: 480px) { .login-card { padding: 24px 20px; } }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="header">
+            <h1>NPC Biometric Attendance</h1>
+            <div class="org">National Productivity Council<br>Ministry of Commerce &amp; Industry, Govt. of India</div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="e.g. vijay.kumar" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn">Sign In</button>
+        </form>
+        <div class="links">
+            <a href="{{ url_for('auth.forgot_password') }}">Forgot Password?</a>
+        </div>
+    </div>
+</body>
+</html>

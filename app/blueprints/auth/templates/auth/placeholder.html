@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page|title }} Dashboard - NPC Biometric Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+        .nav { background: linear-gradient(135deg, #1a237e, #3949ab); color: #fff; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; }
+        .nav h1 { font-size: 1.1rem; }
+        .nav a { color: rgba(255,255,255,0.85); text-decoration: none; margin-left: 16px; font-size: 0.88rem; padding: 6px 12px; border-radius: 5px; }
+        .nav a:hover { background: rgba(255,255,255,0.2); }
+        .content { max-width: 800px; margin: 40px auto; padding: 0 20px; text-align: center; }
+        .card { background: #fff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .card h2 { color: #1a237e; margin-bottom: 12px; }
+        .card p { color: #666; }
+        .info { margin-top: 20px; font-size: 0.88rem; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <h1>NPC Biometric Attendance - {{ current_user.name }}</h1>
+        <div>
+            <a href="{{ url_for('auth.change_password') }}">Password</a>
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        </div>
+    </div>
+    <div class="content">
+        <div class="card">
+            <h2>{{ page|title }} Dashboard</h2>
+            <p>Welcome, <strong>{{ current_user.name }}</strong> ({{ current_user.role }})</p>
+            <p class="info">This module is being built. The new architecture is ready.<br>
+            Blueprints will be activated as each module is completed.</p>
+        </div>
+    </div>
+</body>
+</html>
