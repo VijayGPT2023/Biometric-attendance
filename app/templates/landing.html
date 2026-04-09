@@ -5,738 +5,418 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NPC Biometric Attendance System</title>
 <style>
-@page { size: landscape; margin: 0; }
-@media print { .slide { page-break-after: always; } body { margin: 0; } }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #e0e0e0; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1b4a; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-.slide {
-    width: 960px; height: 540px; margin: 16px auto; position: relative;
-    overflow: hidden; border-radius: 6px; box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+/* ===== TOP BAR (20%) ===== */
+.top-bar {
+    height: 20vh; min-height: 110px;
+    background: linear-gradient(135deg, #0d1b4a 0%, #1a237e 50%, #283593 100%);
+    color: #fff; padding: 16px 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 3px solid #ff6f00;
+    flex-shrink: 0;
 }
-.sn { position: absolute; bottom: 10px; right: 18px; font-size: 10px; color: rgba(255,255,255,0.5); }
-.sn-dark { color: rgba(0,0,0,0.25); }
-
-/* Gradients */
-.bg-navy { background: linear-gradient(135deg, #0d1b4a 0%, #1a237e 50%, #283593 100%); color: #fff; }
-.bg-orange { background: linear-gradient(135deg, #bf360c 0%, #e65100 50%, #ff6f00 100%); color: #fff; }
-.bg-green { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 60%, #43a047 100%); color: #fff; }
-.bg-red { background: linear-gradient(135deg, #7f0000 0%, #b71c1c 50%, #d32f2f 100%); color: #fff; }
-.bg-white { background: #fff; color: #333; }
-.bg-light { background: #f5f5f5; color: #333; }
-
-/* Center layouts */
-.center-all { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%; padding: 40px; }
-.pad { padding: 44px 56px; height: 100%; display: flex; flex-direction: column; }
-
-/* Typography */
-.t-giant { font-size: 2.6rem; font-weight: 700; line-height: 1.1; }
-.t-big { font-size: 1.9rem; font-weight: 700; line-height: 1.2; }
-.t-title { font-size: 1.45rem; font-weight: 700; }
-.t-sub { font-size: 1rem; opacity: 0.85; font-weight: 400; margin-top: 8px; }
-.t-small { font-size: 0.82rem; opacity: 0.75; }
-.t-caption { font-size: 0.72rem; opacity: 0.6; }
-.mb-8 { margin-bottom: 8px; }
-.mb-16 { margin-bottom: 16px; }
-.mb-24 { margin-bottom: 24px; }
-.mt-auto { margin-top: auto; }
-
-/* Flow arrows */
-.flow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
-.flow .box {
-    padding: 12px 10px; border-radius: 10px; text-align: center; font-size: 0.72rem;
-    font-weight: 600; min-width: 80px; line-height: 1.3;
-}
-.flow .box-w { background: rgba(255,255,255,0.2); }
-.flow .box-solid { background: #fff; color: #1a237e; }
-.flow .box-green { background: #c8e6c9; color: #1b5e20; }
-.flow .box-orange { background: #ffe0b2; color: #e65100; }
-.flow .box-red { background: #ffcdd2; color: #b71c1c; }
-.flow .arr { font-size: 1.4rem; opacity: 0.5; }
-.flow .arr-w { color: rgba(255,255,255,0.5); }
-
-/* Cards grid */
-.cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
-.card-item {
-    background: #fff; border-radius: 12px; padding: 18px 16px; text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); min-width: 120px; flex: 1; max-width: 180px;
-}
-.card-item .icon { font-size: 1.8rem; margin-bottom: 6px; }
-.card-item .label { font-size: 0.75rem; color: #666; }
-.card-item .val { font-size: 1.1rem; font-weight: 700; color: #1a237e; }
-
-/* Icon circles */
-.icon-circle {
-    width: 64px; height: 64px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; font-size: 1.8rem;
-    margin-bottom: 16px;
-}
-.ic-w { background: rgba(255,255,255,0.2); }
-
-/* Two column */
-.cols { display: flex; gap: 32px; flex: 1; }
-.col { flex: 1; }
-
-/* Pill badges */
-.pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; color: #fff; }
-.pill-grey { background: #9e9e9e; }
-.pill-blue { background: #1976d2; }
-.pill-orange { background: #f57c00; }
-.pill-green { background: #43a047; }
-.pill-red { background: #e53935; }
-
-/* Visual table */
-.v-table { width: 100%; font-size: 0.75rem; border-collapse: collapse; }
-.v-table th { background: rgba(0,0,0,0.05); padding: 7px 10px; text-align: left; font-weight: 600; }
-.v-table td { padding: 6px 10px; border-bottom: 1px solid rgba(0,0,0,0.06); }
-
-/* Mockup browser */
-.browser-mock {
-    background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    overflow: hidden; width: 100%;
-}
-.browser-bar {
-    background: #e0e0e0; padding: 6px 12px; display: flex; gap: 6px; align-items: center;
-}
-.browser-dot { width: 8px; height: 8px; border-radius: 50%; }
-.browser-url { background: #fff; border-radius: 4px; padding: 2px 10px; font-size: 0.65rem; color: #666; flex: 1; margin-left: 8px; }
-.browser-body { padding: 12px; font-size: 0.7rem; color: #333; }
-
-/* Decorative line */
-.accent-line { width: 50px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.4); margin-bottom: 16px; }
-.accent-line-dark { background: #1a237e; }
-
-/* Number highlight */
-.num-big { font-size: 3.5rem; font-weight: 800; line-height: 1; }
-.num-label { font-size: 0.85rem; opacity: 0.7; margin-top: 4px; }
-
-/* Checklist */
-.check-list { list-style: none; font-size: 0.82rem; line-height: 2; }
-.check-list li::before { content: "✓ "; color: #43a047; font-weight: 700; }
-.check-list-w li::before { color: rgba(255,255,255,0.7); }
-/* Floating login button */
-.login-float {
-    position: fixed; top: 16px; right: 20px; z-index: 9999;
-    background: linear-gradient(135deg, #ff6f00, #e65100);
-    color: #fff; padding: 10px 28px; border-radius: 30px;
-    font-size: 0.95rem; font-weight: 700; text-decoration: none;
+.top-left { display: flex; align-items: center; gap: 16px; }
+.top-left .emblem { font-size: 2rem; }
+.top-left .org-info h1 { font-size: 1.3rem; font-weight: 700; }
+.top-left .org-info .ministry { font-size: 0.78rem; opacity: 0.7; }
+.top-center { text-align: center; flex: 1; }
+.top-center .welcome { font-size: 1.5rem; font-weight: 300; }
+.top-center .welcome strong { font-weight: 700; color: #ff6f00; }
+.top-center .tagline { font-size: 0.85rem; opacity: 0.7; margin-top: 4px; }
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.login-btn {
+    display: inline-block; background: linear-gradient(135deg, #ff6f00, #e65100);
+    color: #fff; padding: 12px 32px; border-radius: 30px;
+    font-size: 1rem; font-weight: 700; text-decoration: none;
     box-shadow: 0 4px 16px rgba(230,81,0,0.4);
     transition: transform 0.2s, box-shadow 0.2s;
 }
-.login-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(230,81,0,0.5); }
+.login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(230,81,0,0.5); }
+.support-link { font-size: 0.72rem; opacity: 0.6; color: #fff; text-decoration: none; }
+.support-link:hover { opacity: 1; }
+
+/* ===== SLIDE VIEWER (80%) ===== */
+.slide-viewer {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; position: relative; background: #1a1a2e;
+    padding: 12px 20px;
+}
+.slide-container {
+    width: 100%; max-width: 900px; aspect-ratio: 16/9;
+    position: relative; overflow: hidden;
+    border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+.slide {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0; transition: opacity 0.5s ease;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 32px 40px; overflow: hidden;
+}
+.slide.active { opacity: 1; z-index: 1; }
+
+/* Slide backgrounds */
+.bg-navy { background: linear-gradient(135deg, #0d1b4a, #283593); color: #fff; }
+.bg-white { background: #fff; color: #333; }
+.bg-orange { background: linear-gradient(135deg, #bf360c, #ff6f00); color: #fff; }
+.bg-green { background: linear-gradient(135deg, #1b5e20, #43a047); color: #fff; }
+.bg-red { background: linear-gradient(135deg, #7f0000, #d32f2f); color: #fff; }
+.bg-light { background: #f5f5f5; color: #333; }
+
+/* Slide typography */
+.s-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; }
+.s-subtitle { font-size: 0.95rem; opacity: 0.8; }
+.s-big { font-size: 2.4rem; font-weight: 800; }
+.s-center { text-align: center; align-items: center; }
+
+/* Slide layouts */
+.s-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.s-card {
+    background: rgba(255,255,255,0.1); border-radius: 10px; padding: 14px 12px;
+    text-align: center; flex: 1; min-width: 100px; max-width: 180px;
+}
+.s-card-white { background: #f0f2f5; }
+.s-card .icon { font-size: 1.6rem; margin-bottom: 4px; }
+.s-card .val { font-size: 1.1rem; font-weight: 700; }
+.s-card .lbl { font-size: 0.65rem; opacity: 0.7; }
+
+.s-flow { display: flex; gap: 4px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.s-flow-box {
+    background: rgba(255,255,255,0.15); padding: 10px 8px; border-radius: 8px;
+    text-align: center; font-size: 0.7rem; font-weight: 600; min-width: 70px;
+}
+.s-flow-arr { font-size: 1rem; opacity: 0.4; }
+
+.s-cols { display: flex; gap: 16px; width: 100%; }
+.s-col { flex: 1; }
+.s-box { border-radius: 10px; padding: 16px; height: 100%; }
+.s-list { list-style: none; font-size: 0.8rem; line-height: 2; }
+.s-list li::before { content: "✓ "; color: #43a047; font-weight: 700; }
+
+.s-action { border-radius: 10px; padding: 12px; text-align: center; }
+.s-action .a-icon { font-size: 1.8rem; }
+.s-action .a-title { font-size: 1.1rem; font-weight: 700; margin: 4px 0; }
+.s-action .a-desc { font-size: 0.72rem; opacity: 0.8; }
+
+.s-num { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+.s-num-label { font-size: 0.85rem; opacity: 0.7; }
+
+/* Navigation */
+.slide-nav {
+    display: flex; align-items: center; gap: 16px; margin-top: 10px;
+}
+.nav-btn {
+    background: rgba(255,255,255,0.15); color: #fff; border: none;
+    width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem;
+    cursor: pointer; transition: background 0.2s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.3); }
+.nav-dots { display: flex; gap: 6px; }
+.nav-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.3); cursor: pointer;
+    transition: all 0.2s;
+}
+.nav-dot.active { background: #ff6f00; width: 24px; border-radius: 4px; }
+.slide-counter { color: rgba(255,255,255,0.5); font-size: 0.78rem; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .top-bar { padding: 10px 16px; flex-direction: column; gap: 8px; height: auto; min-height: 90px; }
+    .top-center .welcome { font-size: 1rem; }
+    .top-left .org-info h1 { font-size: 1rem; }
+    .slide { padding: 16px 20px; }
+    .s-title { font-size: 1.1rem; }
+    .s-cards { gap: 6px; }
+    .s-card { min-width: 70px; padding: 8px; }
+}
 </style>
 </head>
 <body>
 
-<!-- Floating Login Button -->
-<a href="/login" class="login-float">🔐 Login to Portal</a>
-
-<!-- ======== SLIDE 1: TITLE ======== -->
-<div class="slide bg-navy">
-    <div class="center-all">
-        <div class="t-small mb-8" style="letter-spacing:3px; text-transform:uppercase;">National Productivity Council</div>
-        <div class="t-giant mb-8">Biometric Attendance</div>
-        <div class="t-giant" style="font-weight:300;">Management System</div>
-        <div class="t-sub mb-24">Ministry of Commerce &amp; Industry, Government of India</div>
-        <div class="flow" style="margin-top:20px;">
-            <span class="pill pill-blue" style="font-size:0.78rem; padding:5px 14px;">DG / DDG</span>
-            <span class="pill pill-orange" style="font-size:0.78rem; padding:5px 14px;">Group Heads</span>
-            <span class="pill pill-green" style="font-size:0.78rem; padding:5px 14px;">Employees</span>
-            <span class="pill pill-red" style="font-size:0.78rem; padding:5px 14px;">Admin</span>
+<!-- ===== TOP BAR ===== -->
+<div class="top-bar">
+    <div class="top-left">
+        <div class="emblem">🏛️</div>
+        <div class="org-info">
+            <h1>National Productivity Council</h1>
+            <div class="ministry">राष्ट्रीय उत्पादकता परिषद</div>
+            <div class="ministry">Ministry of Commerce & Industry, Govt. of India</div>
         </div>
     </div>
-    <span class="sn">1</span>
-</div>
-
-<!-- ======== SLIDE 2: THE PROBLEM ======== -->
-<div class="slide bg-white">
-    <div class="pad">
-        <div class="accent-line accent-line-dark"></div>
-        <div class="t-big mb-16" style="color:#1a237e;">The Problem We Solve</div>
-        <div class="cards" style="margin-top:16px;">
-            <div class="card-item"><div class="icon">&#128203;</div><div class="val">Manual</div><div class="label">Excel-based tracking is error-prone</div></div>
-            <div class="card-item"><div class="icon">&#9200;</div><div class="val">Delayed</div><div class="label">Months to finalize attendance</div></div>
-            <div class="card-item"><div class="icon">&#128683;</div><div class="val">No Trail</div><div class="label">No audit of who approved what</div></div>
-            <div class="card-item"><div class="icon">&#128100;</div><div class="val">Opaque</div><div class="label">Employees can't see own data</div></div>
-        </div>
-        <div style="text-align:center; margin-top:32px;">
-            <div class="flow">
-                <div class="box" style="background:#ffcdd2; color:#b71c1c;">&#128203; Manual Excel</div>
-                <div class="arr">&#10132;</div>
-                <div class="box" style="background:#e3f2fd; color:#1565c0; font-size:0.85rem; padding:14px 20px;">&#9889; This System</div>
-                <div class="arr">&#10132;</div>
-                <div class="box" style="background:#c8e6c9; color:#1b5e20;">&#9989; Automated &amp; Transparent</div>
-            </div>
-        </div>
+    <div class="top-center">
+        <div class="welcome">Welcome to <strong>Biometric Attendance</strong> System</div>
+        <div class="tagline">Automated attendance analysis • Anomaly detection • Leave management</div>
     </div>
-    <span class="sn sn-dark">2</span>
-</div>
-
-<!-- ======== SLIDE 3: HOW IT WORKS ======== -->
-<div class="slide bg-navy">
-    <div class="pad">
-        <div class="accent-line"></div>
-        <div class="t-big mb-24">How It Works</div>
-        <div class="flow" style="gap:6px;">
-            <div class="box box-w" style="min-width:100px;">&#128194;<br>Admin Uploads<br>Biometric XLS</div>
-            <div class="arr arr-w">&#10132;</div>
-            <div class="box box-w" style="min-width:100px;">&#9888;&#65039;<br>System Detects<br>Anomalies</div>
-            <div class="arr arr-w">&#10132;</div>
-            <div class="box box-w" style="min-width:100px;">&#9997;&#65039;<br>Employee<br>Justifies</div>
-            <div class="arr arr-w">&#10132;</div>
-            <div class="box box-w" style="min-width:100px;">&#128269;<br>Head<br>Reviews</div>
-            <div class="arr arr-w">&#10132;</div>
-            <div class="box box-w" style="min-width:100px;">&#9989;<br>Admin<br>Finalizes</div>
-            <div class="arr arr-w">&#10132;</div>
-            <div class="box box-w" style="min-width:100px;">&#128197;<br>Leave<br>Deducted</div>
-        </div>
-        <div class="cards" style="margin-top:36px;">
-            <div class="card-item"><div class="icon">&#127970;</div><div class="val">13+</div><div class="label">Offices Supported</div></div>
-            <div class="card-item"><div class="icon">&#128101;</div><div class="val">500+</div><div class="label">Employees</div></div>
-            <div class="card-item"><div class="icon">&#128202;</div><div class="val">49</div><div class="label">API Endpoints</div></div>
-            <div class="card-item"><div class="icon">&#128274;</div><div class="val">42</div><div class="label">E2E Tests Passing</div></div>
-        </div>
+    <div class="top-right">
+        <a href="/login" class="login-btn">🔐 Login to Portal</a>
+        <a href="/forgot-password" class="support-link">Forgot Password? | vijay.kumar@npcindia.gov.in</a>
     </div>
-    <span class="sn">3</span>
 </div>
 
-<!-- ======== SLIDE 4: DETAILED WORKFLOW ======== -->
-<div class="slide bg-white">
-    <div class="pad">
-        <div class="accent-line accent-line-dark"></div>
-        <div class="t-title mb-8" style="color:#1a237e;">Complete Workflow: Step by Step</div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <!-- Step 1 -->
-            <div style="flex:1; min-width:180px; background:#fce4ec; border-radius:10px; padding:12px;">
-                <div style="font-size:0.82rem; font-weight:700; color:#c62828; margin-bottom:6px;">❶ ADMIN UPLOADS</div>
-                <div style="font-size:0.68rem; color:#333; line-height:1.6;">
-                    • Selects Office (HQ / Regional)<br>
-                    • Uploads biometric .xls file<br>
-                    • Sets rules (late time, min hours)<br>
-                    • System auto-detects anomalies
-                </div>
-            </div>
-            <div style="display:flex; align-items:center; font-size:1.5rem; color:#ccc;">▶</div>
-            <!-- Step 2 -->
-            <div style="flex:1.2; min-width:200px; background:#e8f5e9; border-radius:10px; padding:12px;">
-                <div style="font-size:0.82rem; font-weight:700; color:#2e7d32; margin-bottom:6px;">❷ EMPLOYEE JUSTIFIES</div>
-                <div style="font-size:0.68rem; color:#333; line-height:1.6;">
-                    • Logs in → sees own anomalies<br>
-                    • Each: Late / Early / Short Hrs / Missing<br>
-                    • Writes reason (tour, medical, etc.)<br>
-                    • Clicks "Submit" → goes to Head
-                </div>
-            </div>
-            <div style="display:flex; align-items:center; font-size:1.5rem; color:#ccc;">▶</div>
-            <!-- Step 3 -->
-            <div style="flex:1.3; min-width:220px; background:#fff3e0; border-radius:10px; padding:12px;">
-                <div style="font-size:0.82rem; font-weight:700; color:#e65100; margin-bottom:6px;">❸ HEAD REVIEWS</div>
-                <div style="font-size:0.68rem; color:#333; line-height:1.4; margin-bottom:6px;">
-                    Reads each justification, then decides:
-                </div>
-                <div style="display:flex; gap:4px;">
-                    <span style="background:#2e7d32; color:#fff; padding:4px 8px; border-radius:6px; font-size:0.62rem; font-weight:700;">✅ Accept<br>Exclude</span>
-                    <span style="background:#c62828; color:#fff; padding:4px 8px; border-radius:6px; font-size:0.62rem; font-weight:700;">❌ Decline<br>Count</span>
-                    <span style="background:#e65100; color:#fff; padding:4px 8px; border-radius:6px; font-size:0.62rem; font-weight:700;">❓ Query<br>Ask more</span>
-                </div>
-                <div style="font-size:0.6rem; color:#999; margin-top:4px;">Query → back to employee</div>
-            </div>
-        </div>
-        <!-- Bottom row -->
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <div style="flex:1; background:#e8eaf6; border-radius:10px; padding:12px;">
-                <div style="font-size:0.82rem; font-weight:700; color:#1a237e; margin-bottom:6px;">❹ ADMIN FINALIZES</div>
-                <div style="font-size:0.68rem; color:#333; line-height:1.6;">
-                    • Reviews Head's decisions<br>
-                    • Can override with reason<br>
-                    • "Exclude" → no deduction | "Count" → deduct<br>
-                    • Clicks "Finalize" → month locked
-                </div>
-            </div>
-            <div style="display:flex; align-items:center; font-size:1.5rem; color:#ccc;">▶</div>
-            <div style="flex:1; background:#ffebee; border-radius:10px; padding:12px;">
-                <div style="font-size:0.82rem; font-weight:700; color:#c62828; margin-bottom:6px;">❺ LEAVE DEDUCTED</div>
-                <div style="font-size:0.68rem; color:#333; line-height:1.6;">
-                    • Only "Counted" anomalies remain<br>
-                    • First 2 days = FREE<br>
-                    • Each extra = 0.5 EL deducted
-                </div>
-                <div style="background:#fff; border-radius:6px; padding:6px 10px; margin-top:6px; font-size:0.65rem; font-weight:600; color:#1a237e;">
-                    Example: 8 anomalies − 3 accepted = 5 counted<br>
-                    5 − 2 free = 3 × 0.5 = <strong style="color:#c62828;">1.5 EL deducted</strong>
-                </div>
-            </div>
-        </div>
-    </div>
-    <span class="sn sn-dark">4</span>
-</div>
+<!-- ===== SLIDE VIEWER ===== -->
+<div class="slide-viewer">
+    <div class="slide-container" id="slideContainer">
 
-<!-- ======== SLIDE 5: WORKFLOW SWIMLANE ======== -->
-<div class="slide bg-navy">
-    <div class="pad">
-        <div class="accent-line"></div>
-        <div class="t-title mb-16">Workflow at a Glance</div>
-        <div style="font-size:0.75rem; line-height:1.3;">
-            <!-- Swimlane diagram -->
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
-                <div style="background:#c62828; color:#fff; padding:6px 14px; border-radius:6px; min-width:90px; text-align:center; font-weight:700;">ADMIN</div>
-                <div style="background:rgba(255,205,210,0.3); padding:6px 12px; border-radius:6px; color:#ffcdd2;">Upload XLS</div>
-                <span style="color:rgba(255,255,255,0.3);">→</span>
-                <div style="background:rgba(255,205,210,0.3); padding:6px 12px; border-radius:6px; color:#ffcdd2;">Auto-Analyze</div>
-                <span style="color:rgba(255,255,255,0.3);">↓ notifies employees</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
-                <div style="background:#2e7d32; color:#fff; padding:6px 14px; border-radius:6px; min-width:90px; text-align:center; font-weight:700;">EMPLOYEE</div>
-                <div style="background:rgba(200,230,201,0.3); padding:6px 12px; border-radius:6px; color:#c8e6c9;">View Anomalies</div>
-                <span style="color:rgba(255,255,255,0.3);">→</span>
-                <div style="background:rgba(200,230,201,0.3); padding:6px 12px; border-radius:6px; color:#c8e6c9;">Write Reasons</div>
-                <span style="color:rgba(255,255,255,0.3);">→</span>
-                <div style="background:rgba(200,230,201,0.5); padding:6px 12px; border-radius:6px; color:#fff; font-weight:700;">Submit</div>
-                <span style="color:rgba(255,255,255,0.3);">↓ to Head</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
-                <div style="background:#e65100; color:#fff; padding:6px 14px; border-radius:6px; min-width:90px; text-align:center; font-weight:700;">HEAD</div>
-                <div style="background:rgba(255,224,178,0.3); padding:6px 12px; border-radius:6px; color:#ffe0b2;">Read Justification</div>
-                <span style="color:rgba(255,255,255,0.3);">→</span>
-                <span style="background:#2e7d32; color:#fff; padding:4px 10px; border-radius:6px; font-weight:700;">✅ Accept</span>
-                <span style="background:#c62828; color:#fff; padding:4px 10px; border-radius:6px; font-weight:700;">❌ Decline</span>
-                <span style="background:#e65100; color:#fff; padding:4px 10px; border-radius:6px; font-weight:700;">❓ Query ↩</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
-                <div style="background:#c62828; color:#fff; padding:6px 14px; border-radius:6px; min-width:90px; text-align:center; font-weight:700;">ADMIN</div>
-                <div style="background:rgba(255,205,210,0.3); padding:6px 12px; border-radius:6px; color:#ffcdd2;">Review Decisions</div>
-                <span style="color:rgba(255,255,255,0.3);">→</span>
-                <div style="background:rgba(255,205,210,0.5); padding:6px 12px; border-radius:6px; color:#fff; font-weight:700;">Finalize</div>
-                <span style="color:rgba(255,255,255,0.3);">→</span>
-                <div style="background:rgba(232,234,246,0.4); padding:6px 12px; border-radius:6px; color:#fff; font-weight:700;">Deduct Leave</div>
+        <!-- SLIDE 1: TITLE -->
+        <div class="slide bg-navy s-center active">
+            <div class="s-big" style="margin-bottom:8px;">Biometric Attendance</div>
+            <div class="s-big" style="font-weight:300; margin-bottom:16px;">Management System</div>
+            <div class="s-subtitle" style="margin-bottom:20px;">Automated • Transparent • Auditable</div>
+            <div class="s-flow" style="gap:10px;">
+                <span style="background:#283593; padding:6px 16px; border-radius:16px; font-size:0.8rem;">DG / DDG</span>
+                <span style="background:#e65100; padding:6px 16px; border-radius:16px; font-size:0.8rem;">Group Heads</span>
+                <span style="background:#2e7d32; padding:6px 16px; border-radius:16px; font-size:0.8rem;">Employees</span>
+                <span style="background:#c62828; padding:6px 16px; border-radius:16px; font-size:0.8rem;">Admin</span>
             </div>
         </div>
-        <!-- Formula bar -->
-        <div style="background:rgba(255,255,255,0.1); border-radius:10px; padding:14px 20px; margin-top:8px;">
-            <div style="text-align:center; font-size:0.85rem; font-weight:600; color:#ff6f00; margin-bottom:8px;">Leave Deduction Formula</div>
-            <div style="display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.78rem;">
-                <span style="background:rgba(255,255,255,0.15); padding:8px 12px; border-radius:8px;">Total<br>Anomalies</span>
-                <span style="font-size:1.2rem; color:#ff6f00;">−</span>
-                <span style="background:rgba(255,255,255,0.15); padding:8px 12px; border-radius:8px;">Accepted<br>(Excluded)</span>
-                <span style="font-size:1.2rem; color:#ff6f00;">−</span>
-                <span style="background:rgba(255,255,255,0.15); padding:8px 12px; border-radius:8px;">Free<br>Allow (2)</span>
-                <span style="font-size:1.2rem; color:#ff6f00;">=</span>
-                <span style="background:rgba(255,255,255,0.15); padding:8px 12px; border-radius:8px;">Deductible<br>Days</span>
-                <span style="font-size:1.2rem; color:#ff6f00;">×</span>
-                <span style="background:rgba(255,255,255,0.15); padding:8px 12px; border-radius:8px;">0.5 EL<br>per day</span>
-                <span style="font-size:1.2rem; color:#ff6f00;">=</span>
-                <span style="background:rgba(255,111,0,0.3); padding:8px 14px; border-radius:8px; font-weight:700; color:#ff6f00;">Leave<br>Deducted</span>
-            </div>
-        </div>
-    </div>
-    <span class="sn">5</span>
-</div>
 
-<!-- ======== SLIDE 6: LOGIN (was 4) ======== -->
-<div class="slide bg-light">
-    <div class="pad">
-        <div class="accent-line accent-line-dark"></div>
-        <div class="t-big mb-16" style="color:#1a237e;">Login</div>
-        <div class="cols">
-            <div class="col" style="flex:1.2;">
-                <div class="browser-mock">
-                    <div class="browser-bar">
-                        <div class="browser-dot" style="background:#ff5f56;"></div>
-                        <div class="browser-dot" style="background:#ffbd2e;"></div>
-                        <div class="browser-dot" style="background:#27c93f;"></div>
-                        <div class="browser-url">npc-biometric-attendance.up.railway.app/login</div>
+        <!-- SLIDE 2: PROBLEM -->
+        <div class="slide bg-white">
+            <div class="s-title" style="color:#1a237e; text-align:center;">The Problem We Solve</div>
+            <div class="s-cards" style="margin-top:12px;">
+                <div class="s-card s-card-white"><div class="icon">📋</div><div class="val" style="color:#1a237e;">Manual</div><div class="lbl" style="color:#666;">Excel-based tracking</div></div>
+                <div class="s-card s-card-white"><div class="icon">⏰</div><div class="val" style="color:#1a237e;">Delayed</div><div class="lbl" style="color:#666;">Months to finalize</div></div>
+                <div class="s-card s-card-white"><div class="icon">🚫</div><div class="val" style="color:#1a237e;">No Audit</div><div class="lbl" style="color:#666;">No accountability</div></div>
+                <div class="s-card s-card-white"><div class="icon">👤</div><div class="val" style="color:#1a237e;">Opaque</div><div class="lbl" style="color:#666;">No transparency</div></div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: HOW IT WORKS -->
+        <div class="slide bg-navy">
+            <div class="s-title" style="text-align:center;">How It Works</div>
+            <div class="s-flow" style="margin:12px 0;">
+                <div class="s-flow-box">📁<br>Upload</div><div class="s-flow-arr">→</div>
+                <div class="s-flow-box">⚠️<br>Detect</div><div class="s-flow-arr">→</div>
+                <div class="s-flow-box">✍️<br>Justify</div><div class="s-flow-arr">→</div>
+                <div class="s-flow-box">🔍<br>Review</div><div class="s-flow-arr">→</div>
+                <div class="s-flow-box">✅<br>Finalize</div><div class="s-flow-arr">→</div>
+                <div class="s-flow-box">📅<br>Deduct</div>
+            </div>
+            <div class="s-cards" style="margin-top:12px;">
+                <div class="s-card"><div class="val">13+</div><div class="lbl">Offices</div></div>
+                <div class="s-card"><div class="val">500+</div><div class="lbl">Employees</div></div>
+                <div class="s-card"><div class="val">49</div><div class="lbl">Routes</div></div>
+                <div class="s-card"><div class="val">42</div><div class="lbl">Tests Passing</div></div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: WORKFLOW 1-3 -->
+        <div class="slide bg-white">
+            <div class="s-title" style="color:#1a237e;">Workflow: Steps 1 → 3</div>
+            <div class="s-cols">
+                <div class="s-col"><div class="s-box" style="background:#fce4ec;">
+                    <div style="font-weight:700; color:#c62828; font-size:0.9rem; margin-bottom:8px;">❶ Admin Uploads</div>
+                    <ul class="s-list"><li>Select Office</li><li>Upload .xls file</li><li>Set rules</li><li>Auto-detect anomalies</li></ul>
+                </div></div>
+                <div class="s-col"><div class="s-box" style="background:#e8f5e9;">
+                    <div style="font-weight:700; color:#2e7d32; font-size:0.9rem; margin-bottom:8px;">❷ Employee Justifies</div>
+                    <ul class="s-list"><li>See own anomalies</li><li>Write reasons</li><li>Submit to Head</li><li>Saved offline</li></ul>
+                </div></div>
+                <div class="s-col"><div class="s-box" style="background:#fff3e0;">
+                    <div style="font-weight:700; color:#e65100; font-size:0.9rem; margin-bottom:8px;">❸ Head Reviews</div>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                        <div style="background:#2e7d32; color:#fff; padding:6px; border-radius:6px; text-align:center; font-size:0.75rem; font-weight:700;">✅ Accept → Exclude</div>
+                        <div style="background:#c62828; color:#fff; padding:6px; border-radius:6px; text-align:center; font-size:0.75rem; font-weight:700;">❌ Decline → Count</div>
+                        <div style="background:#e65100; color:#fff; padding:6px; border-radius:6px; text-align:center; font-size:0.75rem; font-weight:700;">❓ Query → Ask More</div>
                     </div>
-                    <div class="browser-body" style="padding:20px; text-align:center;">
-                        <div style="font-weight:700; font-size:1rem; color:#1a237e; margin-bottom:4px;">NPC Biometric Attendance</div>
-                        <div style="font-size:0.7rem; color:#888; margin-bottom:14px;">राष्ट्रीय उत्पादकता परिषद</div>
-                        <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:6px; padding:8px; margin-bottom:8px; text-align:left; color:#999; font-size:0.75rem;">Username: firstname.lastname</div>
-                        <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:6px; padding:8px; margin-bottom:12px; text-align:left; color:#999; font-size:0.75rem;">Password: ********</div>
-                        <div style="background:#1a237e; color:#fff; padding:8px; border-radius:6px; font-weight:600; font-size:0.8rem;">Sign In</div>
-                        <div style="margin-top:8px; font-size:0.65rem; color:#1a237e;">Forgot Password?</div>
+                </div></div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: WORKFLOW 4-5 -->
+        <div class="slide bg-white">
+            <div class="s-title" style="color:#1a237e;">Workflow: Steps 4 → 5</div>
+            <div class="s-cols">
+                <div class="s-col"><div class="s-box" style="background:#e8eaf6;">
+                    <div style="font-weight:700; color:#1a237e; font-size:0.95rem; margin-bottom:10px;">❹ Admin Finalizes</div>
+                    <ul class="s-list"><li>Reviews Head decisions</li><li>Can override with reason</li><li>Exclude or Count each</li><li>Finalize → month locked</li></ul>
+                </div></div>
+                <div class="s-col"><div class="s-box" style="background:#ffebee;">
+                    <div style="font-weight:700; color:#c62828; font-size:0.95rem; margin-bottom:10px;">❺ Leave Deducted</div>
+                    <ul class="s-list"><li>Only counted anomalies remain</li><li>First 2 days = FREE</li><li>Each extra = 0.5 EL deducted</li></ul>
+                    <div style="background:#fff; border-radius:8px; padding:10px; margin-top:10px; font-size:0.75rem; text-align:center;">
+                        <strong style="color:#1a237e;">Example:</strong> 8 anomalies − 3 accepted = 5<br>
+                        <strong style="color:#c62828;">5 − 2 free = 3 × 0.5 = 1.5 EL</strong>
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: DEDUCTION FORMULA -->
+        <div class="slide bg-navy s-center">
+            <div class="s-title">Leave Deduction Formula</div>
+            <div class="s-flow" style="gap:8px; margin:16px 0;">
+                <div class="s-flow-box" style="padding:12px;">Total<br>Anomalies</div>
+                <div style="font-size:1.4rem; color:#ff6f00; font-weight:700;">−</div>
+                <div class="s-flow-box" style="padding:12px;">Accepted<br>(Excluded)</div>
+                <div style="font-size:1.4rem; color:#ff6f00; font-weight:700;">−</div>
+                <div class="s-flow-box" style="padding:12px;">Free<br>Allow (2)</div>
+                <div style="font-size:1.4rem; color:#ff6f00; font-weight:700;">=</div>
+                <div class="s-flow-box" style="padding:12px;">Deductible<br>Days</div>
+                <div style="font-size:1.4rem; color:#ff6f00; font-weight:700;">×</div>
+                <div class="s-flow-box" style="padding:12px;">0.5 EL</div>
+                <div style="font-size:1.4rem; color:#ff6f00; font-weight:700;">=</div>
+                <div class="s-flow-box" style="background:rgba(255,111,0,0.3); padding:12px; color:#ff6f00; font-weight:700;">Leave<br>Deducted</div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: LOGIN -->
+        <div class="slide bg-light">
+            <div class="s-title" style="color:#1a237e;">How to Login</div>
+            <div class="s-cols">
+                <div class="s-col">
+                    <div style="font-size:0.85rem; line-height:2.2;">
+                        <div style="font-weight:700; color:#1a237e;">Username Format:</div>
+                        <div>👤 Employee: <strong>dk.rahul</strong></div>
+                        <div>👥 Head: <strong>gh.hrmgroup</strong></div>
+                        <div>🏢 DG: <strong>dg</strong> / <strong>ddg1</strong> / <strong>ddg2</strong></div>
+                        <div style="margin-top:12px; font-weight:700; color:#c62828;">🔐 Default: npc123</div>
+                        <div>⚠️ Must change on first login</div>
                     </div>
                 </div>
-            </div>
-            <div class="col">
-                <div style="font-size:0.82rem; line-height:2;">
-                    <div style="font-weight:700; color:#1a237e; margin-bottom:4px;">Username Format</div>
-                    <div>&#128100; Employee: <code style="background:#e8eaf6; padding:2px 6px; border-radius:3px;">dk.rahul</code></div>
-                    <div>&#128101; Head: <code style="background:#fff3e0; padding:2px 6px; border-radius:3px;">gh.hrmgroup</code></div>
-                    <div>&#127970; DG: <code style="background:#e8eaf6; padding:2px 6px; border-radius:3px;">dg</code> / <code style="background:#e8eaf6; padding:2px 6px; border-radius:3px;">ddg1</code> / <code style="background:#e8eaf6; padding:2px 6px; border-radius:3px;">ddg2</code></div>
-                    <div style="margin-top:12px; font-weight:700; color:#1a237e;">First Login</div>
-                    <div>&#128274; Default: <code style="background:#ffcdd2; padding:2px 6px; border-radius:3px;">npc123</code></div>
-                    <div>&#9888;&#65039; Must change immediately</div>
-                    <div>&#9989; Min 8 chars + letter + number</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <span class="sn sn-dark">4</span>
-</div>
-
-<!-- ======== SLIDE 5: SECTION A - DG/DDG ======== -->
-<div class="slide bg-navy">
-    <div class="center-all">
-        <div class="icon-circle ic-w">&#127970;</div>
-        <div class="t-small mb-8" style="letter-spacing:3px;">SECTION A</div>
-        <div class="t-giant">DG &amp; DDG</div>
-        <div class="t-sub">Organization-wide attendance oversight</div>
-    </div>
-    <span class="sn">5</span>
-</div>
-
-<!-- ======== SLIDE 6: DG VIEW ======== -->
-<div class="slide bg-white">
-    <div class="pad">
-        <div class="accent-line accent-line-dark"></div>
-        <div class="t-title mb-16" style="color:#1a237e;">DG / DDG: Your View</div>
-        <div class="cols">
-            <div class="col" style="flex:1.3;">
-                <div class="browser-mock">
-                    <div class="browser-bar">
-                        <div class="browser-dot" style="background:#ff5f56;"></div>
-                        <div class="browser-dot" style="background:#ffbd2e;"></div>
-                        <div class="browser-dot" style="background:#27c93f;"></div>
-                        <div class="browser-url">/head</div>
-                    </div>
-                    <div class="browser-body" style="padding:10px;">
-                        <div style="background:#e65100; color:#fff; padding:6px 10px; border-radius:4px; font-size:0.65rem; margin-bottom:8px;">
-                            <strong>Welcome, Director General</strong>
-                        </div>
-                        <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px;">
-                            <span style="background:#fff3e0; color:#e65100; padding:3px 8px; border-radius:4px; font-size:0.6rem; font-weight:600; cursor:pointer;">AB Group</span>
-                            <span style="background:#fff3e0; color:#e65100; padding:3px 8px; border-radius:4px; font-size:0.6rem; font-weight:600;">Admin</span>
-                            <span style="background:#fff; color:#e65100; border:2px solid #e65100; padding:3px 8px; border-radius:4px; font-size:0.6rem; font-weight:700;">ECA Group</span>
-                            <span style="background:#fff3e0; color:#e65100; padding:3px 8px; border-radius:4px; font-size:0.6rem; font-weight:600;">Finance</span>
-                            <span style="background:#fff3e0; color:#e65100; padding:3px 8px; border-radius:4px; font-size:0.6rem; font-weight:600;">HRM</span>
-                            <span style="background:#fff3e0; color:#e65100; padding:3px 8px; border-radius:4px; font-size:0.6rem; font-weight:600;">IE Group</span>
-                        </div>
-                        <div style="font-size:0.55rem; color:#999; margin-bottom:4px;">ECA Group (17 employees)</div>
-                        <table style="width:100%; font-size:0.5rem; border-collapse:collapse;">
-                            <tr style="background:#f5f5f5;"><th style="padding:3px;">Name</th><th>Present</th><th>Late</th><th>Anomaly</th><th>Leave</th><th>Status</th></tr>
-                            <tr><td style="padding:3px;">Mahotsav Priya</td><td>52</td><td style="color:#e65100;">4</td><td style="color:#c62828; font-weight:700;">8</td><td style="color:#c62828;">3.0</td><td><span class="pill pill-green" style="font-size:0.45rem;">8A</span></td></tr>
-                            <tr><td style="padding:3px;">Raj Kumar Rawat</td><td>55</td><td>1</td><td>3</td><td>0.5</td><td><span class="pill pill-grey" style="font-size:0.45rem;">3P</span></td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div style="font-size:0.82rem;">
-                    <div style="font-weight:700; color:#1a237e; margin-bottom:10px;">&#128065; What You See</div>
-                    <ul class="check-list">
-                        <li>All 12 departments as clickable tabs</li>
-                        <li>Employee summary per department</li>
-                        <li>Anomaly counts &amp; leave deductions</li>
-                        <li>Justification status at a glance</li>
-                    </ul>
-                    <div style="font-weight:700; color:#1a237e; margin-top:16px; margin-bottom:10px;">&#128073; What You Do</div>
-                    <ul class="check-list">
-                        <li>Click department &#10132; see employees</li>
-                        <li>Click employee row &#10132; see daily detail</li>
-                        <li>Monitor chronic late-comers</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <span class="sn sn-dark">6</span>
-</div>
-
-<!-- ======== SLIDE 7: SECTION B - GROUP HEADS ======== -->
-<div class="slide bg-orange">
-    <div class="center-all">
-        <div class="icon-circle ic-w">&#128101;</div>
-        <div class="t-small mb-8" style="letter-spacing:3px;">SECTION B</div>
-        <div class="t-giant">Group Heads</div>
-        <div class="t-sub">Review &amp; decide on employee justifications</div>
-    </div>
-    <span class="sn">7</span>
-</div>
-
-<!-- ======== SLIDE 8: HEAD WORKFLOW ======== -->
-<div class="slide bg-white">
-    <div class="pad">
-        <div class="accent-line" style="background:#ff6f00;"></div>
-        <div class="t-title mb-16" style="color:#e65100;">Group Head: Your Workflow</div>
-        <div class="flow" style="margin-bottom:24px;">
-            <div class="box box-orange" style="min-width:110px;">&#128202;<br><strong>Dashboard</strong><br>See all employees</div>
-            <div class="arr">&#10132;</div>
-            <div class="box box-orange" style="min-width:110px;">&#128269;<br><strong>Review</strong><br>Read justifications</div>
-            <div class="arr">&#10132;</div>
-            <div class="box box-green" style="min-width:90px;">&#9989;<br><strong>Accept</strong><br>Exclude anomaly</div>
-            <div class="box box-red" style="min-width:90px;">&#10060;<br><strong>Decline</strong><br>Count for deduction</div>
-            <div class="box" style="background:#fff3e0; color:#e65100; min-width:90px;">&#10067;<br><strong>Query</strong><br>Ask for more info</div>
-        </div>
-        <div class="cols">
-            <div class="col">
-                <div style="background:#fff8e1; border-radius:8px; padding:14px; font-size:0.78rem;">
-                    <div style="font-weight:700; color:#e65100; margin-bottom:6px;">Status Indicators</div>
-                    <div style="line-height:2;">
-                        <span class="pill pill-grey">12P</span> 12 Pending (employee hasn't submitted)<br>
-                        <span class="pill pill-blue">5S</span> 5 Submitted (ready for your review)<br>
-                        <span class="pill pill-orange">2Q</span> 2 Queried (sent back to employee)<br>
-                        <span class="pill pill-green">8A</span> 8 Accepted by you<br>
-                        <span class="pill pill-red">3D</span> 3 Declined by you
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div style="background:#e8f5e9; border-radius:8px; padding:14px; font-size:0.78rem;">
-                    <div style="font-weight:700; color:#2e7d32; margin-bottom:6px;">&#128161; Tips</div>
-                    <ul class="check-list" style="font-size:0.78rem;">
-                        <li>Use "Accept All" for bulk approvals</li>
-                        <li>Add remarks when declining</li>
-                        <li>Query sends notification to employee</li>
-                        <li>Click employee name for full detail</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <span class="sn sn-dark">8</span>
-</div>
-
-<!-- ======== SLIDE 9: SECTION C - EMPLOYEES ======== -->
-<div class="slide bg-green">
-    <div class="center-all">
-        <div class="icon-circle ic-w">&#128100;</div>
-        <div class="t-small mb-8" style="letter-spacing:3px;">SECTION C</div>
-        <div class="t-giant">Employees</div>
-        <div class="t-sub">View your attendance &amp; justify anomalies</div>
-    </div>
-    <span class="sn">9</span>
-</div>
-
-<!-- ======== SLIDE 10: EMPLOYEE VIEW ======== -->
-<div class="slide bg-white">
-    <div class="pad">
-        <div class="accent-line" style="background:#2e7d32;"></div>
-        <div class="t-title mb-12" style="color:#2e7d32;">Employee: Your Dashboard</div>
-        <div class="cols">
-            <div class="col" style="flex:1.3;">
-                <div class="browser-mock">
-                    <div class="browser-bar">
-                        <div class="browser-dot" style="background:#ff5f56;"></div>
-                        <div class="browser-dot" style="background:#ffbd2e;"></div>
-                        <div class="browser-dot" style="background:#27c93f;"></div>
-                        <div class="browser-url">/employee/report/...</div>
-                    </div>
-                    <div class="browser-body" style="padding:10px;">
-                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-                            <div style="background:#f5f5f5; border-radius:6px; padding:6px 10px; text-align:center; flex:1;">
-                                <div style="font-size:1.1rem; font-weight:700;">58</div>
-                                <div style="font-size:0.5rem; color:#666;">Working Days</div>
-                            </div>
-                            <div style="background:#e8f5e9; border-radius:6px; padding:6px 10px; text-align:center; flex:1;">
-                                <div style="font-size:1.1rem; font-weight:700; color:#2e7d32;">52</div>
-                                <div style="font-size:0.5rem; color:#666;">Present</div>
-                            </div>
-                            <div style="background:#ffebee; border-radius:6px; padding:6px 10px; text-align:center; flex:1;">
-                                <div style="font-size:1.1rem; font-weight:700; color:#c62828;">6</div>
-                                <div style="font-size:0.5rem; color:#666;">Anomalies</div>
-                            </div>
-                            <div style="background:#fff3e0; border-radius:6px; padding:6px 10px; text-align:center; flex:1;">
-                                <div style="font-size:1.1rem; font-weight:700; color:#e65100;">2.0</div>
-                                <div style="font-size:0.5rem; color:#666;">Leave Ded.</div>
-                            </div>
-                        </div>
-                        <table style="width:100%; font-size:0.5rem; border-collapse:collapse;">
-                            <tr style="background:#f5f5f5;"><th style="padding:3px;">Date</th><th>Arrival</th><th>Departure</th><th>Anomaly</th><th>Justification</th></tr>
-                            <tr><td style="padding:3px;">05-Jan</td><td style="color:#c62828;">10:32</td><td>17:45</td><td>Late</td><td><input style="width:80px; font-size:0.5rem; border:1px solid #ddd; border-radius:3px; padding:2px;" placeholder="Your reason..."></td></tr>
-                            <tr><td style="padding:3px;">12-Jan</td><td>09:45</td><td style="color:#c62828;">16:20</td><td>Early</td><td><input style="width:80px; font-size:0.5rem; border:1px solid #ddd; border-radius:3px; padding:2px;" placeholder="Your reason..."></td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div style="font-size:0.82rem;">
-                    <div style="font-weight:700; color:#2e7d32; margin-bottom:8px;">3 Simple Steps</div>
-                    <div class="flow" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="background:#e8f5e9; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#2e7d32; font-size:0.8rem;">1</div>
-                            <div>View your anomalies</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="background:#e8f5e9; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#2e7d32; font-size:0.8rem;">2</div>
-                            <div>Type justification for each</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <div style="background:#e8f5e9; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#2e7d32; font-size:0.8rem;">3</div>
-                            <div>Click Submit</div>
-                        </div>
-                    </div>
-                    <div style="background:#fff3e0; border-radius:8px; padding:10px; margin-top:14px; font-size:0.72rem;">
-                        <strong>&#128268; Offline?</strong> Data auto-saved locally. Submits when you're back online.
+                <div class="s-col">
+                    <div style="background:#fff; border-radius:10px; padding:16px; text-align:center;">
+                        <div style="font-weight:700; color:#1a237e; font-size:1rem; margin-bottom:8px;">Forgot Password?</div>
+                        <div style="font-size:0.8rem; margin-bottom:8px;">Email your details to:</div>
+                        <div style="background:#e3f2fd; padding:8px 12px; border-radius:6px; font-weight:700; color:#1a237e; font-size:0.85rem;">vijay.kumar@npcindia.gov.in</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <span class="sn sn-dark">10</span>
-</div>
 
-<!-- ======== SLIDE 11: LEAVE RULES ======== -->
-<div class="slide bg-navy">
-    <div class="pad">
-        <div class="accent-line"></div>
-        <div class="t-big mb-16">Leave Deduction</div>
-        <div class="cols" style="align-items:center;">
-            <div class="col" style="text-align:center;">
-                <div class="num-big" style="color:#ff6f00;">2</div>
-                <div class="num-label">Free anomaly days per month</div>
-                <div style="margin-top:20px;">
-                    <div class="num-big" style="color:#ff6f00; font-size:2.5rem;">0.5</div>
-                    <div class="num-label">EL deducted per extra day</div>
+        <!-- SLIDE 8: DG/DDG -->
+        <div class="slide bg-navy s-center">
+            <div style="font-size:0.9rem; opacity:0.6; margin-bottom:8px;">SECTION A</div>
+            <div class="s-big">🏢 DG & DDG</div>
+            <div class="s-subtitle">All departments • All employees • Oversight</div>
+            <div style="margin-top:16px; font-size:0.82rem; opacity:0.7;">Click department tab → see employees → click row → daily details</div>
+        </div>
+
+        <!-- SLIDE 9: GROUP HEADS -->
+        <div class="slide bg-orange s-center">
+            <div style="font-size:0.9rem; opacity:0.7; margin-bottom:8px;">SECTION B</div>
+            <div class="s-big">👥 Group Heads</div>
+            <div class="s-subtitle" style="margin-bottom:20px;">Accept • Decline • Query</div>
+            <div class="s-cards" style="gap:16px;">
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">✅</div><div class="a-title">Accept</div><div class="a-desc">Exclude anomaly</div>
                 </div>
-            </div>
-            <div class="col">
-                <table class="v-table" style="color:#fff;">
-                    <tr><th style="color:rgba(255,255,255,0.7);">Anomaly Days</th><th style="color:rgba(255,255,255,0.7);">Deduction</th><th style="color:rgba(255,255,255,0.7);">Visual</th></tr>
-                    <tr><td>1-2 days</td><td style="color:#43a047; font-weight:700;">0 EL</td><td>&#128994;&#128994;</td></tr>
-                    <tr><td>3 days</td><td>0.5 EL</td><td>&#128994;&#128994;&#128308;</td></tr>
-                    <tr><td>5 days</td><td>1.5 EL</td><td>&#128994;&#128994;&#128308;&#128308;&#128308;</td></tr>
-                    <tr><td>8 days</td><td style="color:#ff6f00; font-weight:700;">3.0 EL</td><td>&#128994;&#128994;&#128308;&#128308;&#128308;&#128308;&#128308;&#128308;</td></tr>
-                    <tr><td>12 days</td><td style="color:#ef5350; font-weight:700;">5.0 EL</td><td>&#128994;&#128994;&#128308;x10</td></tr>
-                </table>
-                <div style="margin-top:12px; font-size:0.72rem; opacity:0.7;">
-                    &#128994; = Free &nbsp; &#128308; = 0.5 EL each<br>
-                    Accepted justifications = excluded from count
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">❌</div><div class="a-title">Decline</div><div class="a-desc">Count for deduction</div>
+                </div>
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">❓</div><div class="a-title">Query</div><div class="a-desc">Ask more info</div>
                 </div>
             </div>
         </div>
-    </div>
-    <span class="sn">11</span>
-</div>
 
-<!-- ======== SLIDE 12: SECTION D - ADMIN ======== -->
-<div class="slide bg-red">
-    <div class="center-all">
-        <div class="icon-circle ic-w">&#9881;</div>
-        <div class="t-small mb-8" style="letter-spacing:3px;">SECTION D</div>
-        <div class="t-giant">Admin</div>
-        <div class="t-sub">Upload, manage, finalize, export</div>
-    </div>
-    <span class="sn">12</span>
-</div>
-
-<!-- ======== SLIDE 13: ADMIN UPLOAD ======== -->
-<div class="slide bg-white">
-    <div class="pad">
-        <div class="accent-line" style="background:#c62828;"></div>
-        <div class="t-title mb-12" style="color:#c62828;">Admin: Monthly Process</div>
-        <div class="flow" style="margin-bottom:20px;">
-            <div class="box box-red" style="min-width:100px;">&#128194;<br><strong>Upload</strong><br>Select Office + XLS</div>
-            <div class="arr">&#10132;</div>
-            <div class="box" style="background:#e3f2fd; color:#1565c0; min-width:100px;">&#9889;<br><strong>Analyze</strong><br>Auto-detect anomalies</div>
-            <div class="arr">&#10132;</div>
-            <div class="box" style="background:#fff3e0; color:#e65100; min-width:100px;">&#9203;<br><strong>Wait</strong><br>Employees + Heads</div>
-            <div class="arr">&#10132;</div>
-            <div class="box box-green" style="min-width:100px;">&#9989;<br><strong>Finalize</strong><br>Apply deductions</div>
-            <div class="arr">&#10132;</div>
-            <div class="box" style="background:#e8eaf6; color:#1a237e; min-width:100px;">&#128196;<br><strong>Export</strong><br>Excel / PDF</div>
-        </div>
-        <div class="cols">
-            <div class="col">
-                <div style="background:#fce4ec; border-radius:8px; padding:12px; font-size:0.75rem;">
-                    <div style="font-weight:700; color:#c62828; margin-bottom:6px;">&#128736; Admin Tools</div>
-                    <ul class="check-list" style="font-size:0.75rem;">
-                        <li>User management (add/edit/reset/delete)</li>
-                        <li>Office &amp; department management</li>
-                        <li>Holiday calendar management</li>
-                        <li>System settings &amp; anomaly rules</li>
-                    </ul>
+        <!-- SLIDE 10: EMPLOYEES -->
+        <div class="slide bg-green s-center">
+            <div style="font-size:0.9rem; opacity:0.7; margin-bottom:8px;">SECTION C</div>
+            <div class="s-big">👤 Employees</div>
+            <div class="s-subtitle" style="margin-bottom:20px;">3 Simple Steps</div>
+            <div class="s-cards" style="gap:16px;">
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">1️⃣</div><div class="a-title">View</div><div class="a-desc">See your anomalies</div>
                 </div>
-            </div>
-            <div class="col">
-                <div style="background:#e8eaf6; border-radius:8px; padding:12px; font-size:0.75rem;">
-                    <div style="font-weight:700; color:#1a237e; margin-bottom:6px;">&#128202; Reports</div>
-                    <ul class="check-list" style="font-size:0.75rem;">
-                        <li>Excel export with dept-wise sheets</li>
-                        <li>PDF print-friendly report</li>
-                        <li>Audit log (who did what, when)</li>
-                        <li>eHRMS leave reconciliation</li>
-                    </ul>
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">2️⃣</div><div class="a-title">Justify</div><div class="a-desc">Write your reasons</div>
+                </div>
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">3️⃣</div><div class="a-title">Submit</div><div class="a-desc">Sent to your Head</div>
                 </div>
             </div>
         </div>
-    </div>
-    <span class="sn sn-dark">13</span>
-</div>
 
-<!-- ======== SLIDE 14: FEATURES ======== -->
-<div class="slide bg-navy">
-    <div class="pad">
-        <div class="accent-line"></div>
-        <div class="t-big mb-16">Built-in Security &amp; Compliance</div>
-        <div class="cards">
-            <div class="card-item"><div class="icon">&#128274;</div><div class="val">CSRF</div><div class="label">All forms protected</div></div>
-            <div class="card-item"><div class="icon">&#128272;</div><div class="val">Password</div><div class="label">Strength + forced change</div></div>
-            <div class="card-item"><div class="icon">&#9200;</div><div class="val">Timeout</div><div class="label">30 min auto-logout</div></div>
-            <div class="card-item"><div class="icon">&#128209;</div><div class="val">Audit</div><div class="label">Every action logged</div></div>
-            <div class="card-item"><div class="icon">&#127760;</div><div class="val">GIGW</div><div class="label">3.0 compliant UI</div></div>
-        </div>
-        <div class="cards" style="margin-top:16px;">
-            <div class="card-item"><div class="icon">&#128241;</div><div class="val">Mobile</div><div class="label">Responsive design</div></div>
-            <div class="card-item"><div class="icon">&#127758;</div><div class="val">Hindi</div><div class="label">Bilingual ready</div></div>
-            <div class="card-item"><div class="icon">&#128268;</div><div class="val">Offline</div><div class="label">Local data save</div></div>
-            <div class="card-item"><div class="icon">&#128200;</div><div class="val">Charts</div><div class="label">Visual analytics</div></div>
-            <div class="card-item"><div class="icon">&#9203;</div><div class="val">Rate Limit</div><div class="label">Brute-force protected</div></div>
-        </div>
-    </div>
-    <span class="sn">14</span>
-</div>
-
-<!-- ======== SLIDE 15: TECH STACK ======== -->
-<div class="slide bg-light">
-    <div class="pad">
-        <div class="accent-line accent-line-dark"></div>
-        <div class="t-title mb-16" style="color:#1a237e;">Technology Stack</div>
-        <div class="cols">
-            <div class="col">
-                <table class="v-table">
-                    <tr><th>Layer</th><th>Technology</th></tr>
-                    <tr><td>Backend</td><td><strong>Python Flask</strong> (12 Blueprints)</td></tr>
-                    <tr><td>Database</td><td><strong>PostgreSQL</strong> (18 tables)</td></tr>
-                    <tr><td>ORM</td><td><strong>SQLAlchemy</strong> + Flask-Migrate</td></tr>
-                    <tr><td>Auth</td><td><strong>Flask-Login</strong> + CSRF</td></tr>
-                    <tr><td>Frontend</td><td><strong>Jinja2</strong> + Chart.js</td></tr>
-                    <tr><td>Hosting</td><td><strong>Railway</strong> (Cloud PaaS)</td></tr>
-                    <tr><td>Testing</td><td><strong>Playwright</strong> (42 E2E tests)</td></tr>
-                </table>
-            </div>
-            <div class="col" style="display:flex; flex-direction:column; gap:12px;">
-                <div style="background:#e8eaf6; border-radius:8px; padding:14px; text-align:center;">
-                    <div style="font-size:2.2rem; font-weight:800; color:#1a237e;">49</div>
-                    <div style="font-size:0.75rem; color:#666;">API Routes</div>
+        <!-- SLIDE 11: ADMIN -->
+        <div class="slide bg-red s-center">
+            <div style="font-size:0.9rem; opacity:0.7; margin-bottom:8px;">SECTION D</div>
+            <div class="s-big">⚙️ Admin</div>
+            <div class="s-subtitle" style="margin-bottom:20px;">Upload • Manage • Finalize • Export</div>
+            <div class="s-cards" style="gap:12px;">
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">📁</div><div class="a-title">Upload</div><div class="a-desc">XLS per office</div>
                 </div>
-                <div style="background:#e8f5e9; border-radius:8px; padding:14px; text-align:center;">
-                    <div style="font-size:2.2rem; font-weight:800; color:#2e7d32;">18</div>
-                    <div style="font-size:0.75rem; color:#666;">Database Tables</div>
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">👥</div><div class="a-title">Users</div><div class="a-desc">Add / Edit / Reset</div>
                 </div>
-                <div style="background:#fff3e0; border-radius:8px; padding:14px; text-align:center;">
-                    <div style="font-size:2.2rem; font-weight:800; color:#e65100;">42</div>
-                    <div style="font-size:0.75rem; color:#666;">Tests Passing</div>
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">📊</div><div class="a-title">Reports</div><div class="a-desc">Excel & PDF</div>
+                </div>
+                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
+                    <div class="a-icon">📝</div><div class="a-title">Audit</div><div class="a-desc">Full trail</div>
                 </div>
             </div>
         </div>
+
+        <!-- SLIDE 12: SECURITY -->
+        <div class="slide bg-navy">
+            <div class="s-title" style="text-align:center;">Security & Compliance</div>
+            <div class="s-cards" style="margin-top:8px; gap:10px;">
+                <div class="s-card"><div class="icon">🔐</div><div class="val">CSRF</div></div>
+                <div class="s-card"><div class="icon">🔑</div><div class="val">Password</div></div>
+                <div class="s-card"><div class="icon">⏰</div><div class="val">Timeout</div></div>
+                <div class="s-card"><div class="icon">📝</div><div class="val">Audit</div></div>
+                <div class="s-card"><div class="icon">🌐</div><div class="val">GIGW 3.0</div></div>
+            </div>
+            <div class="s-cards" style="margin-top:10px; gap:10px;">
+                <div class="s-card"><div class="icon">📱</div><div class="val">Mobile</div></div>
+                <div class="s-card"><div class="icon">🇮🇳</div><div class="val">Hindi</div></div>
+                <div class="s-card"><div class="icon">🔌</div><div class="val">Offline</div></div>
+                <div class="s-card"><div class="icon">📊</div><div class="val">Charts</div></div>
+                <div class="s-card"><div class="icon">⏱️</div><div class="val">Rate Limit</div></div>
+            </div>
+        </div>
+
     </div>
-    <span class="sn sn-dark">15</span>
+
+    <!-- Navigation -->
+    <div class="slide-nav">
+        <button class="nav-btn" onclick="prevSlide()">◀</button>
+        <div class="nav-dots" id="navDots"></div>
+        <button class="nav-btn" onclick="nextSlide()">▶</button>
+        <span class="slide-counter" id="slideCounter">1 / 12</span>
+    </div>
 </div>
 
-<!-- ======== SLIDE 16: THANK YOU ======== -->
-<div class="slide bg-navy">
-    <div class="center-all">
-        <div class="t-giant mb-16">Thank You</div>
-        <div class="t-sub mb-24" style="font-size:1.1rem;">NPC Biometric Attendance Management System</div>
-        <div style="background:rgba(255,255,255,0.1); border-radius:12px; padding:20px 32px; margin-top:12px;">
-            <div style="font-size:0.9rem; margin-bottom:8px;">&#128231; Support: <strong>vijay.kumar@npcindia.gov.in</strong></div>
-            <div style="font-size:0.9rem;">&#127760; Portal: <strong>npc-biometric-attendance.up.railway.app</strong></div>
-        </div>
-        <div class="t-caption" style="margin-top:28px;">
-            National Productivity Council &bull; Ministry of Commerce &amp; Industry &bull; Government of India
-        </div>
-    </div>
-    <span class="sn">16</span>
-</div>
+<script>
+var current = 0;
+var slides = document.querySelectorAll('.slide');
+var total = slides.length;
 
+// Create dots
+var dotsEl = document.getElementById('navDots');
+for (var i = 0; i < total; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('data-idx', i);
+    dot.onclick = function() { goTo(parseInt(this.getAttribute('data-idx'))); };
+    dotsEl.appendChild(dot);
+}
+
+function goTo(idx) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('active');
+    current = (idx + total) % total;
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('active');
+    document.getElementById('slideCounter').textContent = (current + 1) + ' / ' + total;
+}
+function nextSlide() { goTo(current + 1); }
+function prevSlide() { goTo(current - 1); }
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+});
+
+// Auto-advance every 8 seconds
+var autoTimer = setInterval(nextSlide, 8000);
+document.querySelector('.slide-viewer').addEventListener('mouseenter', function() { clearInterval(autoTimer); });
+document.querySelector('.slide-viewer').addEventListener('mouseleave', function() { autoTimer = setInterval(nextSlide, 8000); });
+</script>
 </body>
 </html>
