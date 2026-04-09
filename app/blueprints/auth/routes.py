@@ -65,8 +65,8 @@ def login():
             current_app.logger.info(f"Login: {user.username} ({user.role}) from {ip}")
 
             if user.must_change_password:
-                flash('Please change your default password to continue.')
-                return redirect(url_for('auth.change_password'))
+                flash('Recommendation: Please change your default password for security. '
+                      'You can do this anytime from the Password link in the navigation bar.')
 
             return redirect(url_for('auth.dashboard'))
 
@@ -105,8 +105,6 @@ def logout():
 def landing():
     """Landing page for non-logged-in users, dashboard redirect for logged-in."""
     if current_user.is_authenticated:
-        if current_user.must_change_password:
-            return redirect(url_for('auth.change_password'))
         role = current_user.role
         if role in ('super_admin', 'admin'):
             return redirect(url_for('admin.dashboard'))
@@ -120,8 +118,6 @@ def landing():
 @auth_bp.route('/dashboard')
 @login_required
 def dashboard():
-    if current_user.must_change_password:
-        return redirect(url_for('auth.change_password'))
     role = current_user.role
     if role in ('super_admin', 'admin'):
         return redirect(url_for('admin.dashboard'))
