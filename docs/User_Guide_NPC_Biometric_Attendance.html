@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPC Biometric Attendance - User Guide</title>
+<style>
+@page { size: landscape; margin: 0; }
+@media print {
+    .slide { page-break-after: always; }
+    body { margin: 0; }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f0f0; }
+
+.slide {
+    width: 960px; height: 540px; margin: 20px auto;
+    background: #fff; border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 40px 50px; position: relative; overflow: hidden;
+}
+.slide::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 6px; background: linear-gradient(90deg, #1a237e, #3949ab, #ff6f00);
+}
+.slide-num {
+    position: absolute; bottom: 12px; right: 20px;
+    font-size: 11px; color: #999;
+}
+.footer-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #1a237e; color: rgba(255,255,255,0.7); padding: 6px 50px;
+    font-size: 10px; display: flex; justify-content: space-between;
+}
+
+/* Title slide */
+.title-slide { text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.title-slide h1 { font-size: 2.2rem; color: #1a237e; margin-bottom: 8px; }
+.title-slide h2 { font-size: 1.1rem; color: #666; font-weight: 400; margin-bottom: 24px; }
+.title-slide .org { font-size: 0.85rem; color: #888; }
+.title-slide .badge-row { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+.title-slide .badge-row span {
+    padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: #fff;
+}
+
+/* Section slides */
+.section-slide { display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.section-slide h1 { font-size: 2rem; color: #1a237e; margin-bottom: 12px; }
+.section-slide .subtitle { font-size: 1rem; color: #666; }
+.section-slide .icon { font-size: 3rem; margin-bottom: 16px; }
+
+/* Content slides */
+h1 { font-size: 1.5rem; color: #1a237e; margin-bottom: 20px; }
+h2 { font-size: 1.15rem; color: #3949ab; margin-bottom: 12px; }
+.content { font-size: 0.88rem; color: #333; line-height: 1.7; }
+.content li { margin-bottom: 6px; margin-left: 20px; }
+.content li strong { color: #1a237e; }
+
+.two-col { display: flex; gap: 30px; }
+.two-col .col { flex: 1; }
+
+.step-flow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.step-flow .step {
+    background: #e8eaf6; padding: 8px 14px; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 600; color: #1a237e; text-align: center;
+}
+.step-flow .arrow { font-size: 1.2rem; color: #999; }
+
+.highlight-box {
+    background: #fff3e0; border-left: 4px solid #ff6f00;
+    padding: 10px 16px; border-radius: 0 8px 8px 0;
+    margin: 12px 0; font-size: 0.82rem;
+}
+.info-box {
+    background: #e3f2fd; border-left: 4px solid #1565c0;
+    padding: 10px 16px; border-radius: 0 8px 8px 0;
+    margin: 12px 0; font-size: 0.82rem;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-top: 10px; }
+th { background: #e8eaf6; padding: 8px 10px; text-align: left; color: #1a237e; font-weight: 600; }
+td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+tr:hover td { background: #f8f8ff; }
+
+.login-box {
+    background: #f5f5f5; border-radius: 8px; padding: 14px 20px;
+    font-size: 0.82rem; margin: 10px 0; display: inline-block;
+}
+.login-box code { background: #e8eaf6; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: TITLE -->
+<!-- ============================================================ -->
+<div class="slide title-slide">
+    <h1>NPC Biometric Attendance System</h1>
+    <h2>User Guide &amp; Quick Reference</h2>
+    <div class="org">
+        National Productivity Council<br>
+        Ministry of Commerce &amp; Industry, Government of India
+    </div>
+    <div class="badge-row">
+        <span style="background:#1a237e;">DG / DDG</span>
+        <span style="background:#ff6f00;">Group Heads</span>
+        <span style="background:#2e7d32;">Employees</span>
+        <span style="background:#c62828;">Admin</span>
+    </div>
+    <div class="slide-num">1</div>
+    <div class="footer-bar">
+        <span>NPC Biometric Attendance System - User Guide</span>
+        <span>Confidential</span>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: OVERVIEW -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>System Overview</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>What is this system?</h2>
+                <ul>
+                    <li>Analyzes monthly biometric attendance data</li>
+                    <li>Detects anomalies: late arrival, early departure, short hours, missing punches</li>
+                    <li>Employees justify anomalies online</li>
+                    <li>Group Heads review and accept/decline</li>
+                    <li>Admin finalizes leave deductions</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h2>Key Features</h2>
+                <ul>
+                    <li>Role-based dashboards (DG, Head, Employee, Admin)</li>
+                    <li>Office-wise data (HQ + Regional Offices)</li>
+                    <li>Excel &amp; PDF report export</li>
+                    <li>Holiday calendar management</li>
+                    <li>eHRMS leave reconciliation</li>
+                    <li>Complete audit trail</li>
+                </ul>
+            </div>
+        </div>
+        <div class="step-flow" style="margin-top: 20px;">
+            <div class="step">Admin Uploads<br>XLS Data</div>
+            <div class="arrow">&rarr;</div>
+            <div class="step">System Detects<br>Anomalies</div>
+            <div class="arrow">&rarr;</div>
+            <div class="step">Employee<br>Justifies</div>
+            <div class="arrow">&rarr;</div>
+            <div class="step">Head<br>Reviews</div>
+            <div class="arrow">&rarr;</div>
+            <div class="step">Admin<br>Finalizes</div>
+            <div class="arrow">&rarr;</div>
+            <div class="step">Leave<br>Deducted</div>
+        </div>
+    </div>
+    <div class="slide-num">2</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span></span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: LOGIN -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>How to Login</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>Your Login Credentials</h2>
+                <ul>
+                    <li><strong>URL:</strong> npc-biometric-attendance.up.railway.app</li>
+                    <li><strong>Username:</strong> firstname.lastname (e.g. dk.rahul)</li>
+                    <li><strong>Default Password:</strong> npc123</li>
+                    <li>You <strong>must change password</strong> on first login</li>
+                </ul>
+                <div class="highlight-box">
+                    <strong>Password Rules:</strong> Minimum 8 characters, at least 1 letter + 1 number
+                </div>
+                <h2 style="margin-top:16px;">Forgot Password?</h2>
+                <ul>
+                    <li>Click "Forgot Password?" on login page</li>
+                    <li>Email <strong>vijay.kumar@npcindia.gov.in</strong> with your Username &amp; Employee Code</li>
+                    <li>Password will be reset within 1 working day</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h2>Position-Based Logins</h2>
+                <table>
+                    <tr><th>Role</th><th>Username</th></tr>
+                    <tr><td>Director General</td><td><code>dg</code></td></tr>
+                    <tr><td>DDG-I</td><td><code>ddg1</code></td></tr>
+                    <tr><td>DDG-II</td><td><code>ddg2</code></td></tr>
+                    <tr><td>GH AB Group</td><td><code>gh.abgroup</code></td></tr>
+                    <tr><td>GH Admin</td><td><code>gh.admin</code></td></tr>
+                    <tr><td>GH ECA Group</td><td><code>gh.ecagroup</code></td></tr>
+                    <tr><td>GH Finance</td><td><code>gh.finance</code></td></tr>
+                    <tr><td>GH HRM Group</td><td><code>gh.hrmgroup</code></td></tr>
+                    <tr><td>GH IE Group</td><td><code>gh.iegroup</code></td></tr>
+                    <tr><td>GH IT Group</td><td><code>gh.itgroup</code></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">3</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span></span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: SECTION - DG / DDG -->
+<!-- ============================================================ -->
+<div class="slide section-slide" style="background: linear-gradient(135deg, #1a237e, #283593);">
+    <div class="icon" style="color:#fff;">&#127970;</div>
+    <h1 style="color:#fff;">Section A: DG &amp; DDG</h1>
+    <div class="subtitle" style="color:rgba(255,255,255,0.8);">Director General &amp; Deputy Directors General</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: DG/DDG DASHBOARD -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>DG / DDG Dashboard</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>What You See</h2>
+                <ul>
+                    <li>All 12 departments displayed as <strong>clickable tabs</strong></li>
+                    <li>Click any department to see employee summary</li>
+                    <li>Each employee row shows: Working Days, Present, Absent, Late, Early, Short Hours, Anomalies, Leave Deduction</li>
+                    <li><strong>Click any employee row</strong> &rarr; opens day-wise detail</li>
+                </ul>
+                <div class="info-box">
+                    <strong>Login as:</strong> <code>dg</code>, <code>ddg1</code>, or <code>ddg2</code><br>
+                    You can see ALL departments across ALL offices.
+                </div>
+            </div>
+            <div class="col">
+                <h2>What You Can Do</h2>
+                <ul>
+                    <li><strong>View</strong> attendance summary of any department</li>
+                    <li><strong>Drill down</strong> to any employee's daily anomaly details</li>
+                    <li><strong>Review Justifications</strong> &mdash; click "Review Justifications" button</li>
+                    <li><strong>Monitor</strong> justification status (Pending / Submitted / Accepted / Declined)</li>
+                    <li><strong>No action required</strong> unless you want to override Head decisions</li>
+                </ul>
+                <div class="highlight-box">
+                    <strong>Tip:</strong> Use this to identify departments with high anomaly rates and chronic late-comers.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">5</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section A: DG / DDG</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6: SECTION - GROUP HEADS -->
+<!-- ============================================================ -->
+<div class="slide section-slide" style="background: linear-gradient(135deg, #e65100, #ff6f00);">
+    <div class="icon" style="color:#fff;">&#128101;</div>
+    <h1 style="color:#fff;">Section B: Group Heads</h1>
+    <div class="subtitle" style="color:rgba(255,255,255,0.8);">Department / Group Level Review</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7: GROUP HEAD DASHBOARD -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>Group Head Dashboard</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>Your Dashboard Shows</h2>
+                <ul>
+                    <li>Employee attendance summary for <strong>your department(s)</strong></li>
+                    <li>Each employee row: Working Days, Present, Absent, Late, Early, Short Hours, Anomalies, Leave Deduction</li>
+                    <li><strong>Justification Status pills:</strong>
+                        <br><span style="background:#bdbdbd;color:#fff;padding:1px 6px;border-radius:8px;font-size:0.7rem;">P</span> Pending
+                        <span style="background:#1976d2;color:#fff;padding:1px 6px;border-radius:8px;font-size:0.7rem;">S</span> Submitted
+                        <span style="background:#f57c00;color:#fff;padding:1px 6px;border-radius:8px;font-size:0.7rem;">Q</span> Queried
+                        <span style="background:#43a047;color:#fff;padding:1px 6px;border-radius:8px;font-size:0.7rem;">A</span> Accepted
+                        <span style="background:#c62828;color:#fff;padding:1px 6px;border-radius:8px;font-size:0.7rem;">D</span> Declined
+                    </li>
+                </ul>
+            </div>
+            <div class="col">
+                <h2>Your Workflow</h2>
+                <div class="step-flow">
+                    <div class="step">View<br>Summary</div>
+                    <div class="arrow">&rarr;</div>
+                    <div class="step">Click<br>Employee</div>
+                    <div class="arrow">&rarr;</div>
+                    <div class="step">Read<br>Justification</div>
+                    <div class="arrow">&rarr;</div>
+                    <div class="step">Accept /<br>Decline / Query</div>
+                </div>
+                <div class="highlight-box" style="margin-top: 16px;">
+                    <strong>Actions per anomaly:</strong><br>
+                    <strong>Accept</strong> &mdash; Anomaly will be excluded (no leave deduction)<br>
+                    <strong>Decline</strong> &mdash; Anomaly counts towards leave deduction<br>
+                    <strong>Query</strong> &mdash; Send back to employee for more details
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">7</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section B: Group Heads</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8: HEAD - REVIEW PAGE -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>How to Review Justifications</h1>
+    <div class="content">
+        <h2>Step-by-Step</h2>
+        <ol style="margin-left: 20px;">
+            <li><strong>Login</strong> with your GH username (e.g. <code>gh.hrmgroup</code>)</li>
+            <li>Dashboard shows all employees with anomaly counts</li>
+            <li>Click <strong>"Review Justifications"</strong> button</li>
+            <li>For each employee's submitted justification:
+                <ul>
+                    <li>Read the justification text</li>
+                    <li>Check supporting documents (if uploaded)</li>
+                    <li>Select: <strong>Accept</strong>, <strong>Decline</strong>, or <strong>Query</strong></li>
+                    <li>Add your remark (optional but recommended for Decline/Query)</li>
+                </ul>
+            </li>
+            <li>Click <strong>"Submit All Decisions"</strong> at the bottom</li>
+            <li>Use <strong>"Accept All"</strong> / <strong>"Decline All"</strong> for bulk actions</li>
+        </ol>
+        <div class="info-box" style="margin-top: 12px;">
+            <strong>Note:</strong> You can only review justifications that have been <strong>submitted</strong> by employees.
+            Pending (grey) items mean the employee hasn't submitted yet.
+        </div>
+    </div>
+    <div class="slide-num">8</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section B: Group Heads</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9: SECTION - EMPLOYEES -->
+<!-- ============================================================ -->
+<div class="slide section-slide" style="background: linear-gradient(135deg, #1b5e20, #2e7d32);">
+    <div class="icon" style="color:#fff;">&#128100;</div>
+    <h1 style="color:#fff;">Section C: Employees</h1>
+    <div class="subtitle" style="color:rgba(255,255,255,0.8);">View Attendance &amp; Submit Justifications</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10: EMPLOYEE DASHBOARD -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>Employee Dashboard</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>What You See</h2>
+                <ul>
+                    <li>Your attendance sessions with anomaly count</li>
+                    <li>Status of your justifications:
+                        <br><strong>Pending</strong> &mdash; You haven't submitted yet
+                        <br><strong>Submitted</strong> &mdash; Sent to Head, awaiting review
+                        <br><strong>Query</strong> &mdash; Head asked for more details
+                        <br><strong>Accepted</strong> &mdash; Anomaly excluded
+                        <br><strong>Declined</strong> &mdash; Anomaly counted for deduction
+                    </li>
+                    <li><strong>Last Submitted</strong> timestamp shown</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h2>Your Workflow</h2>
+                <div class="step-flow">
+                    <div class="step">View<br>Anomalies</div>
+                    <div class="arrow">&rarr;</div>
+                    <div class="step">Write<br>Justification</div>
+                    <div class="arrow">&rarr;</div>
+                    <div class="step">Submit to<br>Group Head</div>
+                </div>
+                <div class="highlight-box" style="margin-top:16px;">
+                    <strong>Offline Support:</strong> If internet drops while filling justifications,
+                    your data is auto-saved locally. It will be submitted automatically when connection restores.
+                </div>
+                <div class="info-box">
+                    <strong>Leave Deduction Rule:</strong><br>
+                    First 2 anomaly dates per month = free<br>
+                    Each additional anomaly = 0.5 day EL deduction
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">10</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section C: Employees</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11: EMPLOYEE - JUSTIFICATION -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>How to Submit Justifications</h1>
+    <div class="content">
+        <h2>Step-by-Step</h2>
+        <ol style="margin-left: 20px;">
+            <li><strong>Login</strong> with your username (e.g. <code>dk.rahul</code>)</li>
+            <li>Click <strong>"View &amp; Justify"</strong> on your attendance session</li>
+            <li>You see your attendance summary + day-wise anomaly table</li>
+            <li>For each anomaly date:
+                <ul>
+                    <li>Check the anomaly type (Late, Early, Short Hours, Missing Punch)</li>
+                    <li>Type your justification in the text box</li>
+                    <li>Example: <em>"Was on official tour to Ministry. Tour order attached."</em></li>
+                </ul>
+            </li>
+            <li>Click <strong>"Submit Justifications"</strong></li>
+            <li>Success message with timestamp will appear</li>
+            <li>If Head sends a <strong>Query</strong>, you'll see it with the Head's remark. Update and re-submit.</li>
+        </ol>
+        <div class="highlight-box" style="margin-top: 8px;">
+            <strong>Important:</strong> Submit justifications promptly. Unsubmitted anomalies will be counted for leave deduction.
+        </div>
+    </div>
+    <div class="slide-num">11</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section C: Employees</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12: SECTION - ADMIN -->
+<!-- ============================================================ -->
+<div class="slide section-slide" style="background: linear-gradient(135deg, #b71c1c, #c62828);">
+    <div class="icon" style="color:#fff;">&#9881;</div>
+    <h1 style="color:#fff;">Section D: Admin</h1>
+    <div class="subtitle" style="color:rgba(255,255,255,0.8);">System Administration &amp; Data Management</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 13: ADMIN DASHBOARD -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>Admin Dashboard &amp; Upload</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>Monthly Upload Process</h2>
+                <ol style="margin-left: 20px;">
+                    <li>Login as <code>admin</code></li>
+                    <li>Select <strong>Office</strong> (HQ or Regional)</li>
+                    <li>Upload biometric <strong>.xls/.xlsx</strong> file(s)</li>
+                    <li>Set parameters: Late time, Early time, Min hours, Allowed anomalies</li>
+                    <li>Click <strong>"Upload &amp; Analyze"</strong></li>
+                    <li>System processes and creates anomaly records</li>
+                </ol>
+                <div class="info-box">
+                    Upload multiple months at once. Files are merged by Employee Code.
+                </div>
+            </div>
+            <div class="col">
+                <h2>After Upload</h2>
+                <ul>
+                    <li><strong>View Report</strong> &mdash; printable attendance report</li>
+                    <li><strong>Review &amp; Finalize</strong> &mdash; review Head decisions, apply leave deductions</li>
+                    <li><strong>Excel</strong> &mdash; download report as .xlsx</li>
+                    <li><strong>PDF</strong> &mdash; print-friendly PDF view</li>
+                </ul>
+                <h2 style="margin-top:14px;">Finalization</h2>
+                <ul>
+                    <li>Review Head's accept/decline decisions</li>
+                    <li>Select <strong>Exclude</strong> (no deduction) or <strong>Count</strong> (deduct leave)</li>
+                    <li>Click <strong>"Finalize Decisions"</strong></li>
+                    <li>Leave deductions are calculated: 0.5 EL per extra anomaly</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">13</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section D: Admin</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 14: ADMIN - USER & OFFICE MANAGEMENT -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>User &amp; Office Management</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>User Management</h2>
+                <ul>
+                    <li><strong>Add User:</strong> Emp Code, Name, Password, Role, Office</li>
+                    <li><strong>Edit User:</strong> Change name, role, office, department mapping</li>
+                    <li><strong>Reset Password:</strong> One-click reset to npc123 (forces change on next login)</li>
+                    <li><strong>Delete User:</strong> Soft-delete (data preserved for audit)</li>
+                    <li><strong>Roles:</strong> Employee, Head, Admin, Auditor</li>
+                </ul>
+                <div class="highlight-box">
+                    <strong>Transfer:</strong> Change employee's office assignment to handle inter-office transfers.
+                </div>
+            </div>
+            <div class="col">
+                <h2>Office &amp; Department</h2>
+                <ul>
+                    <li><strong>Add Office:</strong> Name, Code (e.g. RO-MUM), Location</li>
+                    <li><strong>Add Department:</strong> Name, assign to Office</li>
+                    <li>Departments auto-created from XLS data on upload</li>
+                </ul>
+                <h2 style="margin-top:14px;">Other Admin Functions</h2>
+                <ul>
+                    <li><strong>Holidays:</strong> Manage gazetted &amp; office-specific holidays</li>
+                    <li><strong>Settings:</strong> Configure anomaly rules, thresholds</li>
+                    <li><strong>Audit Log:</strong> View all system actions with timestamps</li>
+                    <li><strong>Reconciliation:</strong> Upload eHRMS leave data to match with biometric absences</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">14</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Section D: Admin</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 15: LEAVE DEDUCTION RULES -->
+<!-- ============================================================ -->
+<div class="slide">
+    <h1>Leave Deduction Rules</h1>
+    <div class="content">
+        <div class="two-col">
+            <div class="col">
+                <h2>How Anomalies Are Counted</h2>
+                <table>
+                    <tr><th>Anomaly Type</th><th>When Flagged</th></tr>
+                    <tr><td>Late Arrival</td><td>Punch-in after 10:00 AM</td></tr>
+                    <tr><td>Early Departure</td><td>Punch-out before 5:00 PM</td></tr>
+                    <tr><td>Short Hours</td><td>Less than 8 hours worked</td></tr>
+                    <tr><td>Missing Departure</td><td>No out-punch recorded</td></tr>
+                    <tr><td>Missing Arrival</td><td>No in-punch recorded</td></tr>
+                </table>
+                <div class="info-box" style="margin-top:12px;">
+                    <strong>Note:</strong> Multiple anomalies on same day = counted as 1 anomaly date.
+                </div>
+            </div>
+            <div class="col">
+                <h2>Deduction Calculation</h2>
+                <table>
+                    <tr><th>Anomaly Days</th><th>Deduction</th></tr>
+                    <tr><td>1-2 days</td><td><strong>0</strong> (free allowance)</td></tr>
+                    <tr><td>3 days</td><td>0.5 EL</td></tr>
+                    <tr><td>4 days</td><td>1.0 EL</td></tr>
+                    <tr><td>5 days</td><td>1.5 EL</td></tr>
+                    <tr><td>N days</td><td>(N - 2) &times; 0.5 EL</td></tr>
+                </table>
+                <div class="highlight-box" style="margin-top:12px;">
+                    <strong>Accepted justifications are excluded</strong> from this count.
+                    Only <strong>declined or unsubmitted</strong> anomalies count towards deduction.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-num">15</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span></span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 16: SUPPORT -->
+<!-- ============================================================ -->
+<div class="slide" style="display:flex; flex-direction:column; justify-content:center; text-align:center;">
+    <h1 style="font-size:1.8rem; margin-bottom: 24px;">Need Help?</h1>
+    <div class="content" style="font-size: 1rem;">
+        <p style="margin-bottom: 20px;">For password reset, technical issues, or feedback:</p>
+        <div class="login-box" style="font-size: 1.1rem;">
+            Email: <code style="font-size:1.1rem;">vijay.kumar@npcindia.gov.in</code>
+        </div>
+        <p style="margin-top: 24px; color: #888;">
+            NPC Biometric Attendance Management System v2.0<br>
+            Built with Flask + PostgreSQL + SQLAlchemy<br>
+            42 E2E Tests Passing | GIGW 3.0 Compliant
+        </p>
+    </div>
+    <div class="slide-num">16</div>
+    <div class="footer-bar"><span>NPC Biometric Attendance System</span><span>Thank You</span></div>
+</div>
+
+</body>
+</html>
