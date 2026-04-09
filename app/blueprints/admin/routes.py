@@ -139,6 +139,8 @@ def reset_password(user_id):
     user.must_change_password = True
     user.active_session_id = ''
     user.last_activity = None
+    user.failed_login_count = 0
+    user.locked_until = None
     db.session.commit()
     AuditLog.log('password_reset', user_id=current_user.id,
                  resource_type='user', resource_id=str(user_id))
