@@ -102,6 +102,16 @@ body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1b4a; height:
 .s-num { font-size: 3.5rem; font-weight: 800; line-height: 1; }
 .s-num-label { font-size: 0.85rem; opacity: 0.7; }
 
+/* Screenshot in slide */
+.s-screenshot {
+    border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    max-width: 100%; max-height: 100%; object-fit: contain;
+    border: 2px solid rgba(255,255,255,0.15);
+}
+.s-split { display: flex; gap: 16px; width: 100%; align-items: center; flex: 1; }
+.s-split-text { flex: 0 0 35%; }
+.s-split-img { flex: 1; text-align: center; }
+
 /* Navigation */
 .slide-nav {
     display: flex; align-items: center; gap: 16px; margin-top: 10px;
@@ -138,7 +148,7 @@ body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1b4a; height:
 <!-- ===== TOP BAR ===== -->
 <div class="top-bar">
     <div class="top-left">
-        <div class="emblem">🏛️</div>
+        <img src="{{ url_for('static', filename='images/npc_logo.png') }}" alt="NPC Logo" style="height:60px; border-radius:4px;">
         <div class="org-info">
             <h1>National Productivity Council</h1>
             <div class="ministry">राष्ट्रीय उत्पादकता परिषद</div>
@@ -286,67 +296,80 @@ body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1b4a; height:
             </div>
         </div>
 
-        <!-- SLIDE 8: DG/DDG -->
-        <div class="slide bg-navy s-center">
-            <div style="font-size:0.9rem; opacity:0.6; margin-bottom:8px;">SECTION A</div>
-            <div class="s-big">🏢 DG & DDG</div>
-            <div class="s-subtitle">All departments • All employees • Oversight</div>
-            <div style="margin-top:16px; font-size:0.82rem; opacity:0.7;">Click department tab → see employees → click row → daily details</div>
-        </div>
-
-        <!-- SLIDE 9: GROUP HEADS -->
-        <div class="slide bg-orange s-center">
-            <div style="font-size:0.9rem; opacity:0.7; margin-bottom:8px;">SECTION B</div>
-            <div class="s-big">👥 Group Heads</div>
-            <div class="s-subtitle" style="margin-bottom:20px;">Accept • Decline • Query</div>
-            <div class="s-cards" style="gap:16px;">
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">✅</div><div class="a-title">Accept</div><div class="a-desc">Exclude anomaly</div>
+        <!-- SLIDE 8: DG/DDG with screenshot -->
+        <div class="slide bg-navy">
+            <div class="s-title" style="text-align:center;">🏢 DG & DDG Dashboard</div>
+            <div class="s-split">
+                <div class="s-split-text">
+                    <div style="font-size:0.85rem; line-height:2;">
+                        <div style="font-weight:700; margin-bottom:6px;">What You See:</div>
+                        ✓ All 12 department tabs<br>
+                        ✓ Employee summary per dept<br>
+                        ✓ Anomaly counts<br>
+                        ✓ Leave deductions<br><br>
+                        <div style="font-weight:700;">What You Do:</div>
+                        Click dept → employees → daily detail
+                    </div>
                 </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">❌</div><div class="a-title">Decline</div><div class="a-desc">Count for deduction</div>
-                </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">❓</div><div class="a-title">Query</div><div class="a-desc">Ask more info</div>
+                <div class="s-split-img">
+                    <img src="{{ url_for('static', filename='images/screenshots/dg_dashboard.png') }}" class="s-screenshot" alt="DG Dashboard">
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 10: EMPLOYEES -->
-        <div class="slide bg-green s-center">
-            <div style="font-size:0.9rem; opacity:0.7; margin-bottom:8px;">SECTION C</div>
-            <div class="s-big">👤 Employees</div>
-            <div class="s-subtitle" style="margin-bottom:20px;">3 Simple Steps</div>
-            <div class="s-cards" style="gap:16px;">
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">1️⃣</div><div class="a-title">View</div><div class="a-desc">See your anomalies</div>
+        <!-- SLIDE 9: GROUP HEADS with screenshot -->
+        <div class="slide bg-orange">
+            <div class="s-title" style="text-align:center;">👥 Group Head Dashboard</div>
+            <div class="s-split">
+                <div class="s-split-text">
+                    <div style="font-size:0.85rem; line-height:1.8;">
+                        <div style="font-weight:700; margin-bottom:6px;">Your 3 Actions:</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:6px 10px; border-radius:6px; margin-bottom:4px;">✅ <strong>Accept</strong> → Exclude anomaly</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:6px 10px; border-radius:6px; margin-bottom:4px;">❌ <strong>Decline</strong> → Count for deduction</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:6px 10px; border-radius:6px;">❓ <strong>Query</strong> → Ask more info</div>
+                    </div>
                 </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">2️⃣</div><div class="a-title">Justify</div><div class="a-desc">Write your reasons</div>
-                </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">3️⃣</div><div class="a-title">Submit</div><div class="a-desc">Sent to your Head</div>
+                <div class="s-split-img">
+                    <img src="{{ url_for('static', filename='images/screenshots/head_dashboard.png') }}" class="s-screenshot" alt="Head Dashboard">
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 11: ADMIN -->
-        <div class="slide bg-red s-center">
-            <div style="font-size:0.9rem; opacity:0.7; margin-bottom:8px;">SECTION D</div>
-            <div class="s-big">⚙️ Admin</div>
-            <div class="s-subtitle" style="margin-bottom:20px;">Upload • Manage • Finalize • Export</div>
-            <div class="s-cards" style="gap:12px;">
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">📁</div><div class="a-title">Upload</div><div class="a-desc">XLS per office</div>
+        <!-- SLIDE 10: EMPLOYEES with screenshot -->
+        <div class="slide bg-green">
+            <div class="s-title" style="text-align:center;">👤 Employee Dashboard</div>
+            <div class="s-split">
+                <div class="s-split-text">
+                    <div style="font-size:0.85rem; line-height:1.8;">
+                        <div style="font-weight:700; margin-bottom:6px;">3 Simple Steps:</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:6px 10px; border-radius:6px; margin-bottom:4px;">1️⃣ <strong>View</strong> your anomalies</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:6px 10px; border-radius:6px; margin-bottom:4px;">2️⃣ <strong>Justify</strong> write your reasons</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:6px 10px; border-radius:6px;">3️⃣ <strong>Submit</strong> sent to Head</div>
+                        <div style="margin-top:8px; font-size:0.75rem; opacity:0.8;">🔌 Offline? Auto-saved locally</div>
+                    </div>
                 </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">👥</div><div class="a-title">Users</div><div class="a-desc">Add / Edit / Reset</div>
+                <div class="s-split-img">
+                    <img src="{{ url_for('static', filename='images/screenshots/employee_dashboard.png') }}" class="s-screenshot" alt="Employee Dashboard">
                 </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">📊</div><div class="a-title">Reports</div><div class="a-desc">Excel & PDF</div>
+            </div>
+        </div>
+
+        <!-- SLIDE 11: ADMIN with screenshot -->
+        <div class="slide bg-red">
+            <div class="s-title" style="text-align:center;">⚙️ Admin Dashboard</div>
+            <div class="s-split">
+                <div class="s-split-text">
+                    <div style="font-size:0.85rem; line-height:1.8;">
+                        <div style="font-weight:700; margin-bottom:6px;">Capabilities:</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; margin-bottom:3px;">📁 Upload XLS per office</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; margin-bottom:3px;">👥 User management</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; margin-bottom:3px;">📊 Excel & PDF reports</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; margin-bottom:3px;">📝 Audit trail</div>
+                        <div style="background:rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px;">✅ Review & finalize</div>
+                    </div>
                 </div>
-                <div class="s-action" style="background:rgba(255,255,255,0.2); flex:1;">
-                    <div class="a-icon">📝</div><div class="a-title">Audit</div><div class="a-desc">Full trail</div>
+                <div class="s-split-img">
+                    <img src="{{ url_for('static', filename='images/screenshots/admin_dashboard.png') }}" class="s-screenshot" alt="Admin Dashboard">
                 </div>
             </div>
         </div>
