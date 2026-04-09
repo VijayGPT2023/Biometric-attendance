@@ -1,753 +1,318 @@
-"""Generate NPC Biometric Attendance System PPT presentation."""
+"""Generate NPC Biometric Attendance System PPT - Clean, minimal, 16pt+ fonts."""
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
-# Colors
 NAVY = RGBColor(0x1a, 0x23, 0x7e)
-NAVY_LIGHT = RGBColor(0x39, 0x49, 0xab)
+NAVY2 = RGBColor(0x28, 0x35, 0x93)
 ORANGE = RGBColor(0xe6, 0x51, 0x00)
 GREEN = RGBColor(0x2e, 0x7d, 0x32)
 RED = RGBColor(0xc6, 0x28, 0x28)
 WHITE = RGBColor(0xff, 0xff, 0xff)
-GREY = RGBColor(0x66, 0x66, 0x66)
-LIGHT_BG = RGBColor(0xf0, 0xf2, 0xf5)
+GREY = RGBColor(0x88, 0x88, 0x88)
 BLACK = RGBColor(0x33, 0x33, 0x33)
+LGREY = RGBColor(0xf0, 0xf2, 0xf5)
 
 prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
+BLANK = prs.slide_layouts[6]
 
 
-def add_bg(slide, color):
-    bg = slide.background
-    fill = bg.fill
-    fill.solid()
-    fill.fore_color.rgb = color
+def bg(slide, color):
+    slide.background.fill.solid()
+    slide.background.fill.fore_color.rgb = color
 
 
-def add_gradient_bg(slide, c1, c2):
-    bg = slide.background
-    fill = bg.fill
-    fill.gradient()
-    fill.gradient_stops[0].color.rgb = c1
-    fill.gradient_stops[1].color.rgb = c2
+def grad(slide, c1, c2):
+    f = slide.background.fill
+    f.gradient()
+    f.gradient_stops[0].color.rgb = c1
+    f.gradient_stops[1].color.rgb = c2
 
 
-def add_text_box(slide, left, top, width, height, text, size=18, color=BLACK,
-                 bold=False, align=PP_ALIGN.LEFT, font_name='Segoe UI'):
-    txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
-    tf = txBox.text_frame
+def txt(slide, l, t, w, h, text, sz=18, clr=BLACK, bold=False, align=PP_ALIGN.LEFT):
+    tb = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = tb.text_frame
     tf.word_wrap = True
-    p = tf.paragraphs[0]
-    p.text = text
-    p.font.size = Pt(size)
-    p.font.color.rgb = color
-    p.font.bold = bold
-    p.font.name = font_name
-    p.alignment = align
-    return txBox
-
-
-def add_shape_box(slide, left, top, width, height, fill_color, text='',
-                  font_size=11, font_color=WHITE, bold=False, radius=0.15):
-    shape = slide.shapes.add_shape(
-        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top),
-        Inches(width), Inches(height))
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill_color
-    shape.line.fill.background()
-    if text:
-        tf = shape.text_frame
-        tf.word_wrap = True
-        tf.paragraphs[0].alignment = PP_ALIGN.CENTER
-        p = tf.paragraphs[0]
-        p.text = text
-        p.font.size = Pt(font_size)
-        p.font.color.rgb = font_color
+    for i, line in enumerate(text.split('\n')):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = line
+        p.font.size = Pt(sz)
+        p.font.color.rgb = clr
         p.font.bold = bold
         p.font.name = 'Segoe UI'
-    return shape
+        p.alignment = align
+        p.space_after = Pt(4)
+    return tb
 
 
-def add_arrow(slide, left, top):
-    add_text_box(slide, left, top, 0.4, 0.4, '→', size=22, color=RGBColor(0x99, 0x99, 0x99),
-                 align=PP_ALIGN.CENTER)
+def box(slide, l, t, w, h, fill, text='', sz=16, clr=WHITE, bold=False):
+    sh = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(l), Inches(t), Inches(w), Inches(h))
+    sh.fill.solid()
+    sh.fill.fore_color.rgb = fill
+    sh.line.fill.background()
+    if text:
+        tf = sh.text_frame
+        tf.word_wrap = True
+        for i, line in enumerate(text.split('\n')):
+            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            p.text = line
+            p.font.size = Pt(sz)
+            p.font.color.rgb = clr
+            p.font.bold = bold
+            p.font.name = 'Segoe UI'
+            p.alignment = PP_ALIGN.CENTER
+    return sh
 
 
-def add_icon_card(slide, left, top, icon, value, label, accent=NAVY):
-    add_shape_box(slide, left, top, 2.0, 1.6, WHITE)
-    add_text_box(slide, left, top + 0.1, 2.0, 0.5, icon, size=28, align=PP_ALIGN.CENTER)
-    add_text_box(slide, left, top + 0.65, 2.0, 0.4, value, size=16, bold=True,
-                 color=accent, align=PP_ALIGN.CENTER)
-    add_text_box(slide, left, top + 1.05, 2.0, 0.4, label, size=9, color=GREY,
-                 align=PP_ALIGN.CENTER)
+def sn(slide, n, clr=WHITE):
+    txt(slide, 12.6, 7.0, 0.6, 0.3, str(n), sz=10, clr=clr, align=PP_ALIGN.RIGHT)
 
 
-def add_slide_number(slide, num, color=WHITE):
-    add_text_box(slide, 12.5, 7.0, 0.7, 0.3, str(num), size=9,
-                 color=color, align=PP_ALIGN.RIGHT)
+# 1. TITLE
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY2)
+txt(s, 1, 1.5, 11, 0.5, 'NATIONAL PRODUCTIVITY COUNCIL', sz=16, clr=RGBColor(0x99,0xaa,0xff), align=PP_ALIGN.CENTER)
+txt(s, 1, 2.3, 11, 1.5, 'Biometric Attendance\nManagement System', sz=44, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1, 4.3, 11, 0.5, 'Ministry of Commerce & Industry, Government of India', sz=16, clr=RGBColor(0xbb,0xbb,0xff), align=PP_ALIGN.CENTER)
+for i, (lb, cl) in enumerate([('DG / DDG', NAVY2), ('Group Heads', ORANGE), ('Employees', GREEN), ('Admin', RED)]):
+    box(s, 3.2 + i*1.9, 5.3, 1.6, 0.5, cl, lb, sz=16, bold=True)
+sn(s,1)
 
+# 2. PROBLEM
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 1, 0.6, 11, 0.7, 'The Problem We Solve', sz=36, clr=NAVY, bold=True, align=PP_ALIGN.CENTER)
+for i, (ic, ti) in enumerate([('📋','Manual\nProcess'), ('⏰','Delayed\nFinalization'), ('🚫','No Audit\nTrail'), ('👤','Zero\nTransparency')]):
+    x = 0.8 + i*3.1
+    box(s, x, 2.0, 2.7, 3.8, LGREY)
+    txt(s, x, 2.2, 2.7, 0.8, ic, sz=44, align=PP_ALIGN.CENTER)
+    txt(s, x, 3.3, 2.7, 1.0, ti, sz=22, clr=NAVY, bold=True, align=PP_ALIGN.CENTER)
+sn(s,2,BLACK)
 
-# ============================================================
-# SLIDE 1: TITLE
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_text_box(s, 1, 1.2, 11, 0.5, 'NATIONAL PRODUCTIVITY COUNCIL', size=14,
-             color=RGBColor(0xaa, 0xaa, 0xff), align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 1.8, 11, 1.2, 'Biometric Attendance\nManagement System', size=42,
-             color=WHITE, bold=True, align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 3.5, 11, 0.5, 'Ministry of Commerce & Industry, Government of India',
-             size=14, color=RGBColor(0xcc, 0xcc, 0xff), align=PP_ALIGN.CENTER)
-
-# Role badges
-for i, (label, clr) in enumerate([
-    ('DG / DDG', NAVY_LIGHT), ('Group Heads', ORANGE),
-    ('Employees', GREEN), ('Admin', RED)
-]):
-    add_shape_box(s, 3.5 + i * 1.8, 4.5, 1.5, 0.45, clr, label, font_size=11, bold=True)
-
-add_slide_number(s, 1)
-
-
-# ============================================================
-# SLIDE 2: THE PROBLEM
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, WHITE)
-add_shape_box(s, 0.8, 0.7, 0.5, 0.06, NAVY)  # accent line
-add_text_box(s, 0.8, 0.9, 6, 0.6, 'The Problem We Solve', size=32, bold=True, color=NAVY)
-
-for i, (icon, val, desc) in enumerate([
-    ('📋', 'Manual', 'Excel tracking\nis error-prone'),
-    ('⏰', 'Delayed', 'Months to finalize\nattendance'),
-    ('🚫', 'No Audit Trail', 'No record of\nwho approved what'),
-    ('👤', 'Opaque', 'Employees can\'t\nsee own data'),
-]):
-    x = 1.0 + i * 2.8
-    add_shape_box(s, x, 2.0, 2.3, 2.0, LIGHT_BG)
-    add_text_box(s, x, 2.1, 2.3, 0.5, icon, size=30, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, 2.65, 2.3, 0.4, val, size=15, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, 3.1, 2.3, 0.7, desc, size=10, color=GREY, align=PP_ALIGN.CENTER)
-
-# Before -> After
-add_shape_box(s, 2.0, 4.8, 2.5, 0.6, RGBColor(0xff, 0xcd, 0xd2), '📋  Manual Excel',
-              font_size=12, font_color=RED)
-add_text_box(s, 4.7, 4.85, 0.5, 0.4, '→', size=24, color=GREY, align=PP_ALIGN.CENTER)
-add_shape_box(s, 5.3, 4.8, 2.5, 0.6, RGBColor(0xe3, 0xf2, 0xfd), '⚡  This System',
-              font_size=12, font_color=NAVY, bold=True)
-add_text_box(s, 8.0, 4.85, 0.5, 0.4, '→', size=24, color=GREY, align=PP_ALIGN.CENTER)
-add_shape_box(s, 8.6, 4.8, 2.8, 0.6, RGBColor(0xc8, 0xe6, 0xc9), '✅  Automated & Transparent',
-              font_size=12, font_color=GREEN)
-
-add_slide_number(s, 2, BLACK)
-
-
-# ============================================================
-# SLIDE 3: HOW IT WORKS (FLOW)
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, RGBColor(0x66, 0x7e, 0xea))
-add_text_box(s, 0.8, 0.8, 6, 0.6, 'How It Works', size=32, bold=True, color=WHITE)
-
-steps = ['📁\nAdmin Uploads\nBiometric XLS', '⚠️\nSystem Detects\nAnomalies',
-         '✍️\nEmployee\nJustifies', '🔍\nHead\nReviews',
-         '✅\nAdmin\nFinalizes', '📅\nLeave\nDeducted']
-for i, step in enumerate(steps):
-    x = 0.6 + i * 2.1
-    add_shape_box(s, x, 1.8, 1.7, 1.5, RGBColor(0x28, 0x35, 0x93), step,
-                  font_size=10, font_color=WHITE)
+# 3. HOW IT WORKS
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d,0x1b,0x4a), NAVY2)
+txt(s, 1, 0.5, 11, 0.6, 'How It Works', sz=36, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+for i, (st, lb) in enumerate([('📁\nUpload','Admin'), ('⚠️\nDetect','System'), ('✍️\nJustify','Employee'), ('🔍\nReview','Head'), ('✅\nFinalize','Admin'), ('📅\nDeduct','System')]):
+    x = 0.5 + i*2.1
+    box(s, x, 1.6, 1.8, 1.8, NAVY2, st, sz=20, bold=True)
+    txt(s, x, 3.5, 1.8, 0.4, lb, sz=16, clr=RGBColor(0x99,0xaa,0xff), align=PP_ALIGN.CENTER)
     if i < 5:
-        add_text_box(s, x + 1.75, 2.2, 0.35, 0.5, '→', size=20,
-                     color=RGBColor(0x66, 0x7e, 0xea), align=PP_ALIGN.CENTER)
+        txt(s, x+1.85, 2.1, 0.3, 0.5, '→', sz=24, clr=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
+for i, (v, l) in enumerate([('13+','Offices'), ('500+','Employees'), ('49','Routes'), ('42','Tests')]):
+    x = 1.2 + i*3.0
+    box(s, x, 4.6, 2.4, 1.6, WHITE)
+    txt(s, x, 4.7, 2.4, 0.8, v, sz=36, clr=NAVY, bold=True, align=PP_ALIGN.CENTER)
+    txt(s, x, 5.6, 2.4, 0.4, l, sz=18, clr=GREY, align=PP_ALIGN.CENTER)
+sn(s,3)
 
-# Stats
-for i, (val, label) in enumerate([('13+', 'Offices'), ('500+', 'Employees'),
-                                    ('49', 'API Routes'), ('42', 'Tests Passing')]):
-    x = 1.5 + i * 2.8
-    add_shape_box(s, x, 4.2, 2.2, 1.5, WHITE)
-    add_text_box(s, x, 4.35, 2.2, 0.7, val, size=28, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, 5.0, 2.2, 0.4, label, size=11, color=GREY, align=PP_ALIGN.CENTER)
+# 4. WORKFLOW STEPS 1-3
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 0.8, 0.4, 11, 0.6, 'Workflow: Steps 1 → 3', sz=32, clr=NAVY, bold=True)
+box(s, 0.5, 1.3, 3.7, 5.2, RGBColor(0xfc,0xe4,0xec))
+txt(s, 0.7, 1.4, 3.3, 0.5, '❶  Admin Uploads', sz=22, clr=RED, bold=True)
+txt(s, 0.7, 2.1, 3.3, 3.5, '• Select Office\n\n• Upload biometric XLS\n\n• Set rules\n  (late time, min hours)\n\n• System auto-detects\n  anomalies', sz=16, clr=BLACK)
+txt(s, 4.3, 3.5, 0.5, 0.5, '▶', sz=28, clr=RGBColor(0xcc,0xcc,0xcc), align=PP_ALIGN.CENTER)
+box(s, 4.9, 1.3, 3.7, 5.2, RGBColor(0xe8,0xf5,0xe9))
+txt(s, 5.1, 1.4, 3.3, 0.5, '❷  Employee Justifies', sz=22, clr=GREEN, bold=True)
+txt(s, 5.1, 2.1, 3.3, 3.5, '• Sees own anomalies\n\n• Types reason for each\n  (tour, medical, etc.)\n\n• Clicks Submit\n\n• Auto-saved if offline', sz=16, clr=BLACK)
+txt(s, 8.7, 3.5, 0.5, 0.5, '▶', sz=28, clr=RGBColor(0xcc,0xcc,0xcc), align=PP_ALIGN.CENTER)
+box(s, 9.3, 1.3, 3.5, 5.2, RGBColor(0xff,0xf3,0xe0))
+txt(s, 9.5, 1.4, 3.1, 0.5, '❸  Head Reviews', sz=22, clr=ORANGE, bold=True)
+txt(s, 9.5, 2.1, 3.1, 1.2, '• Reads justification\n\n• Decides per anomaly:', sz=16, clr=BLACK)
+box(s, 9.6, 3.8, 2.9, 0.6, GREEN, '✅  Accept → Exclude', sz=18, bold=True)
+box(s, 9.6, 4.6, 2.9, 0.6, RED, '❌  Decline → Count', sz=18, bold=True)
+box(s, 9.6, 5.4, 2.9, 0.6, ORANGE, '❓  Query → Ask More', sz=18, bold=True)
+sn(s,4,BLACK)
 
-add_slide_number(s, 3)
+# 5. WORKFLOW STEPS 4-5
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 0.8, 0.4, 11, 0.6, 'Workflow: Steps 4 → 5', sz=32, clr=NAVY, bold=True)
+box(s, 0.5, 1.3, 5.5, 5.0, RGBColor(0xe8,0xea,0xf6))
+txt(s, 0.7, 1.4, 5.1, 0.5, '❹  Admin Finalizes', sz=24, clr=NAVY, bold=True)
+txt(s, 0.7, 2.2, 5.1, 3.0, '• Reviews Head decisions\n\n• Can override with reason\n\n• "Exclude" → No deduction\n  "Count" → Deduct leave\n\n• Clicks Finalize → Month locked', sz=18, clr=BLACK)
+txt(s, 6.2, 3.5, 0.5, 0.5, '▶', sz=32, clr=RGBColor(0xcc,0xcc,0xcc), align=PP_ALIGN.CENTER)
+box(s, 6.8, 1.3, 5.8, 5.0, RGBColor(0xff,0xeb,0xee))
+txt(s, 7.0, 1.4, 5.4, 0.5, '❺  Leave Deducted', sz=24, clr=RED, bold=True)
+txt(s, 7.0, 2.2, 5.4, 1.5, '• Only "Counted" anomalies remain\n\n• First 2 days = FREE\n\n• Each extra = 0.5 EL deducted', sz=18, clr=BLACK)
+box(s, 7.2, 4.5, 5.0, 1.4, WHITE)
+txt(s, 7.4, 4.6, 4.6, 0.5, 'Example:', sz=20, clr=NAVY, bold=True)
+txt(s, 7.4, 5.1, 4.6, 0.7, '8 anomalies − 3 accepted = 5 counted\n5 − 2 free = 3 × 0.5 = 1.5 EL', sz=20, clr=RED, bold=True)
+sn(s,5,BLACK)
 
-
-# ============================================================
-# SLIDE 4: DETAILED WORKFLOW - TOP HALF
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, WHITE)
-add_shape_box(s, 0.8, 0.4, 0.5, 0.06, NAVY)
-add_text_box(s, 0.8, 0.55, 8, 0.5, 'Complete Workflow: Step by Step', size=28, bold=True, color=NAVY)
-
-# STEP 1: Admin Upload
-add_shape_box(s, 0.5, 1.4, 2.8, 2.4, RGBColor(0xfc, 0xe4, 0xec))
-add_text_box(s, 0.5, 1.45, 2.8, 0.35, '❶  ADMIN UPLOADS', size=12, bold=True, color=RED, align=PP_ALIGN.CENTER)
-add_text_box(s, 0.7, 1.9, 2.4, 1.8,
-    '• Selects Office (HQ / Regional)\n'
-    '• Uploads biometric .xls file\n'
-    '• Sets rules (late time, min hours)\n'
-    '• System auto-detects anomalies\n'
-    '• Creates record for each employee',
-    size=10, color=BLACK)
-
-# Arrow
-add_text_box(s, 3.4, 2.2, 0.5, 0.5, '▶', size=24, color=RGBColor(0xcc, 0xcc, 0xcc), align=PP_ALIGN.CENTER)
-
-# STEP 2: Employee Reviews & Justifies
-add_shape_box(s, 4.0, 1.4, 3.6, 2.4, RGBColor(0xe8, 0xf5, 0xe9))
-add_text_box(s, 4.0, 1.45, 3.6, 0.35, '❷  EMPLOYEE JUSTIFIES', size=12, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
-add_text_box(s, 4.2, 1.9, 3.2, 1.8,
-    '• Logs in → sees own anomalies\n'
-    '• Each anomaly: Late / Early / Short Hrs\n'
-    '• Writes reason for each anomaly\n'
-    '   (tour, medical, device fault, etc.)\n'
-    '• Clicks "Submit" → goes to Head\n'
-    '• Can save draft & come back later',
-    size=10, color=BLACK)
-
-# Arrow
-add_text_box(s, 7.7, 2.2, 0.5, 0.5, '▶', size=24, color=RGBColor(0xcc, 0xcc, 0xcc), align=PP_ALIGN.CENTER)
-
-# STEP 3: Head Reviews
-add_shape_box(s, 8.3, 1.4, 4.2, 2.4, RGBColor(0xff, 0xf3, 0xe0))
-add_text_box(s, 8.3, 1.45, 4.2, 0.35, '❸  HEAD REVIEWS', size=12, bold=True, color=ORANGE, align=PP_ALIGN.CENTER)
-add_text_box(s, 8.5, 1.9, 3.8, 0.6,
-    '• Reads each justification\n'
-    '• For EACH anomaly, decides:',
-    size=10, color=BLACK)
-# Three decision boxes
-add_shape_box(s, 8.6, 2.65, 1.1, 0.55, GREEN, '✅ Accept\nExclude it', font_size=8, font_color=WHITE, bold=True)
-add_shape_box(s, 9.8, 2.65, 1.1, 0.55, RED, '❌ Decline\nCount it', font_size=8, font_color=WHITE, bold=True)
-add_shape_box(s, 11.0, 2.65, 1.3, 0.55, ORANGE, '❓ Query\nAsk more info', font_size=8, font_color=WHITE, bold=True)
-add_text_box(s, 8.5, 3.3, 3.8, 0.4, '• Query → goes back to employee', size=9, color=GREY)
-
-# Bottom: Step 4 Admin Finalize + Deduction
-add_shape_box(s, 0.5, 4.2, 6.5, 2.6, RGBColor(0xe8, 0xea, 0xf6))
-add_text_box(s, 0.5, 4.25, 6.5, 0.35, '❹  ADMIN FINALIZES', size=12, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-add_text_box(s, 0.7, 4.7, 6.1, 1.8,
-    '• Reviews Head\'s decisions for all employees\n'
-    '• Can override Head decision with recorded reason\n'
-    '• For each anomaly:\n'
-    '      "Exclude" → anomaly removed (no deduction)\n'
-    '      "Count" → anomaly stays (leave deducted)\n'
-    '• Clicks "Finalize Decisions" → month is locked',
-    size=10, color=BLACK)
-
-# Arrow to deduction
-add_text_box(s, 7.2, 5.1, 0.5, 0.5, '▶', size=24, color=RGBColor(0xcc, 0xcc, 0xcc), align=PP_ALIGN.CENTER)
-
-# Step 5: Leave Deduction
-add_shape_box(s, 7.8, 4.2, 4.7, 2.6, RGBColor(0xff, 0xeb, 0xee))
-add_text_box(s, 7.8, 4.25, 4.7, 0.35, '❺  LEAVE DEDUCTED', size=12, bold=True, color=RED, align=PP_ALIGN.CENTER)
-add_text_box(s, 8.0, 4.7, 4.3, 0.8,
-    '• Only "Counted" anomalies remain\n'
-    '• First 2 anomaly days = FREE\n'
-    '• Each extra day = 0.5 EL deducted',
-    size=10, color=BLACK)
-
-# Example box
-add_shape_box(s, 8.2, 5.6, 4.0, 1.0, WHITE)
-add_text_box(s, 8.3, 5.65, 3.8, 0.8,
-    'Example: 8 anomalies → 3 accepted\n'
-    '= 5 counted − 2 free = 3 × 0.5 = 1.5 EL',
-    size=10, bold=True, color=NAVY)
-
-add_slide_number(s, 4, BLACK)
-
-
-# ============================================================
-# SLIDE 5: WORKFLOW VISUAL DIAGRAM
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_text_box(s, 0.8, 0.4, 8, 0.5, 'Workflow at a Glance', size=28, bold=True, color=WHITE)
-
-# Large visual flow with swimlanes
-# Admin lane
-add_shape_box(s, 0.5, 1.2, 1.8, 0.45, RED, 'ADMIN', font_size=11, bold=True)
-add_shape_box(s, 2.5, 1.2, 2.0, 0.45, RGBColor(0xff,0xcd,0xd2), 'Upload XLS', font_size=10, font_color=RED)
-add_text_box(s, 4.6, 1.25, 0.4, 0.35, '→', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 5.0, 1.2, 2.0, 0.45, RGBColor(0xff,0xcd,0xd2), 'Auto-Analyze', font_size=10, font_color=RED)
-
-# Employee lane
-add_shape_box(s, 0.5, 2.2, 1.8, 0.45, GREEN, 'EMPLOYEE', font_size=11, bold=True)
-add_text_box(s, 7.1, 1.25, 0.4, 0.35, '↓', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 2.5, 2.2, 2.0, 0.45, RGBColor(0xc8,0xe6,0xc9), 'View Anomalies', font_size=10, font_color=GREEN)
-add_text_box(s, 4.6, 2.25, 0.4, 0.35, '→', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 5.0, 2.2, 2.0, 0.45, RGBColor(0xc8,0xe6,0xc9), 'Write Reasons', font_size=10, font_color=GREEN)
-add_text_box(s, 7.1, 2.25, 0.4, 0.35, '→', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 7.5, 2.2, 1.8, 0.45, RGBColor(0xc8,0xe6,0xc9), 'Submit', font_size=10, font_color=GREEN, bold=True)
-
-# Head lane
-add_shape_box(s, 0.5, 3.2, 1.8, 0.45, ORANGE, 'HEAD', font_size=11, bold=True)
-add_text_box(s, 9.4, 2.25, 0.4, 0.35, '↓', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 2.5, 3.2, 2.2, 0.45, RGBColor(0xff,0xe0,0xb2), 'Read Justification', font_size=10, font_color=ORANGE)
-add_text_box(s, 4.8, 3.25, 0.4, 0.35, '→', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-
-# Three outcomes
-add_shape_box(s, 5.3, 3.0, 1.4, 0.4, GREEN, '✅ Accept', font_size=9, bold=True)
-add_shape_box(s, 5.3, 3.5, 1.4, 0.4, RED, '❌ Decline', font_size=9, bold=True)
-add_shape_box(s, 6.9, 3.2, 1.5, 0.45, ORANGE, '❓ Query', font_size=9, bold=True)
-
-# Query loops back
-add_text_box(s, 8.5, 3.25, 2.5, 0.35, '↩ back to employee', size=9, color=RGBColor(0xff,0xcc,0x80))
-
-# Admin finalize lane
-add_shape_box(s, 0.5, 4.2, 1.8, 0.45, RED, 'ADMIN', font_size=11, bold=True)
-add_text_box(s, 6.8, 3.65, 0.4, 0.35, '↓', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 2.5, 4.2, 2.2, 0.45, RGBColor(0xff,0xcd,0xd2), 'Review Decisions', font_size=10, font_color=RED)
-add_text_box(s, 4.8, 4.25, 0.4, 0.35, '→', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 5.3, 4.2, 1.8, 0.45, RGBColor(0xff,0xcd,0xd2), 'Finalize', font_size=10, font_color=RED, bold=True)
-add_text_box(s, 7.2, 4.25, 0.4, 0.35, '→', size=16, color=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
-add_shape_box(s, 7.6, 4.2, 2.0, 0.45, RGBColor(0xe8,0xea,0xf6), 'Deduct Leave', font_size=10, font_color=NAVY, bold=True)
-
-# Deduction summary
-add_shape_box(s, 1.0, 5.2, 11.3, 1.6, RGBColor(0x1a, 0x23, 0x7e))
-add_text_box(s, 1.0, 5.25, 11.3, 0.35, 'Leave Deduction Summary', size=14, bold=True,
-             color=WHITE, align=PP_ALIGN.CENTER)
-
-labels = ['Total\nAnomalies', '−', 'Accepted\n(Excluded)', '−', 'Free\nAllowance (2)', '=', 'Deductible\nDays', '×', '0.5 EL\nper day', '=', 'Leave\nDeducted']
-for i, lbl in enumerate(labels):
-    x = 1.2 + i * 0.95
-    if lbl in ('−', '=', '×'):
-        add_text_box(s, x, 5.7, 0.7, 0.6, lbl, size=20, bold=True,
-                     color=RGBColor(0xff, 0xcc, 0x80), align=PP_ALIGN.CENTER)
-    else:
-        clr = ORANGE if 'Deduct' in lbl else WHITE
-        add_shape_box(s, x, 5.75, 0.85, 0.7,
-                      RGBColor(0x28, 0x35, 0x93), lbl, font_size=8, font_color=clr, bold='Deduct' in lbl)
-
-add_slide_number(s, 5)
-
-
-# ============================================================
-# SLIDE 6: LOGIN (was slide 4)
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, LIGHT_BG)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, NAVY)
-add_text_box(s, 0.8, 0.8, 5, 0.6, 'Login Guide', size=32, bold=True, color=NAVY)
-
-# Login mockup
-add_shape_box(s, 1.0, 1.8, 5, 4.5, WHITE)
-add_text_box(s, 1.0, 1.9, 5, 0.4, '🌐  npc-biometric-attendance.up.railway.app', size=10,
-             color=GREY, align=PP_ALIGN.CENTER)
-add_text_box(s, 1.0, 2.5, 5, 0.5, 'NPC Biometric Attendance', size=18, bold=True,
-             color=NAVY, align=PP_ALIGN.CENTER)
-add_text_box(s, 1.0, 3.0, 5, 0.3, 'राष्ट्रीय उत्पादकता परिषद', size=11,
-             color=GREY, align=PP_ALIGN.CENTER)
-add_shape_box(s, 2.0, 3.6, 3, 0.45, LIGHT_BG, 'Username: firstname.lastname',
-              font_size=10, font_color=GREY)
-add_shape_box(s, 2.0, 4.2, 3, 0.45, LIGHT_BG, 'Password: ********',
-              font_size=10, font_color=GREY)
-add_shape_box(s, 2.0, 4.9, 3, 0.5, NAVY, 'Sign In', font_size=14, bold=True)
-add_text_box(s, 2.0, 5.55, 3, 0.3, 'Forgot Password?', size=10, color=NAVY, align=PP_ALIGN.CENTER)
-
-# Credentials
-add_text_box(s, 7.0, 1.8, 5, 0.4, '👤  Username Format', size=16, bold=True, color=NAVY)
-creds = [
-    ('Employee', 'dk.rahul', ''),
-    ('Head', 'gh.hrmgroup', ''),
-    ('DG', 'dg', ''),
-    ('DDG-I', 'ddg1', ''),
-    ('DDG-II', 'ddg2', ''),
+# 6. SWIMLANE
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d,0x1b,0x4a), NAVY2)
+txt(s, 0.8, 0.3, 11, 0.6, 'Workflow at a Glance', sz=32, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+lanes = [
+    (RED, 'ADMIN', ['Upload XLS', 'Auto-Analyze']),
+    (GREEN, 'EMPLOYEE', ['View Anomalies', 'Write Reasons', 'Submit']),
+    (ORANGE, 'HEAD', ['Read Justification', 'Accept / Decline / Query']),
+    (RED, 'ADMIN', ['Review Decisions', 'Finalize', 'Deduct Leave']),
 ]
-for i, (role, uname, _) in enumerate(creds):
-    y = 2.4 + i * 0.4
-    add_text_box(s, 7.2, y, 2, 0.35, role, size=11, color=GREY)
-    add_shape_box(s, 9.3, y, 2.2, 0.32, RGBColor(0xe8, 0xea, 0xf6), uname,
-                  font_size=11, font_color=NAVY, bold=True)
+for i, (cl, role, acts) in enumerate(lanes):
+    y = 1.2 + i*1.2
+    box(s, 0.5, y, 2.2, 0.8, cl, role, sz=18, bold=True)
+    for j, a in enumerate(acts):
+        x = 3.2 + j*3.2
+        box(s, x, y, 2.8, 0.8, NAVY2, a, sz=16)
+        if j < len(acts)-1:
+            txt(s, x+2.85, y+0.15, 0.3, 0.5, '→', sz=20, clr=RGBColor(0x66,0x7e,0xea), align=PP_ALIGN.CENTER)
+box(s, 0.5, 6.0, 12.3, 0.9, RGBColor(0x1a,0x23,0x7e))
+txt(s, 0.5, 6.1, 12.3, 0.6, 'Total − Accepted − Free(2) = Deductible × 0.5 = Leave Deducted', sz=20, clr=ORANGE, bold=True, align=PP_ALIGN.CENTER)
+sn(s,6)
 
-add_text_box(s, 7.0, 4.6, 5, 0.4, '🔐  First Login', size=16, bold=True, color=NAVY)
-add_text_box(s, 7.2, 5.1, 5, 0.3, '• Default password: npc123', size=12, color=BLACK)
-add_text_box(s, 7.2, 5.45, 5, 0.3, '• Must change immediately', size=12, color=RED)
-add_text_box(s, 7.2, 5.8, 5, 0.3, '• Min 8 chars + letter + number', size=12, color=BLACK)
+# 7. LOGIN
+s = prs.slides.add_slide(BLANK)
+bg(s, LGREY)
+txt(s, 0.8, 0.4, 5, 0.6, 'How to Login', sz=36, clr=NAVY, bold=True)
+creds = [('Employee','dk.rahul'), ('Group Head','gh.hrmgroup'), ('DG / DDG','dg / ddg1 / ddg2'), ('Admin','admin')]
+for i, (r, u) in enumerate(creds):
+    y = 1.5 + i*0.9
+    txt(s, 1.2, y, 2.5, 0.5, r, sz=20, clr=BLACK, bold=True)
+    box(s, 4.0, y, 3.2, 0.6, RGBColor(0xe8,0xea,0xf6), u, sz=18, clr=NAVY, bold=True)
+txt(s, 1.0, 5.4, 6, 0.5, '🔐  Default password: npc123', sz=20, clr=RED, bold=True)
+txt(s, 1.0, 6.0, 6, 0.5, '⚠️  Must change on first login', sz=18, clr=BLACK)
+box(s, 7.8, 1.5, 4.8, 3.5, WHITE)
+txt(s, 7.8, 1.7, 4.8, 0.5, 'Forgot Password?', sz=24, clr=NAVY, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 8.0, 2.5, 4.4, 1.0, 'Email your Username\n& Employee Code to:', sz=20, clr=BLACK, align=PP_ALIGN.CENTER)
+box(s, 8.3, 3.8, 3.8, 0.7, RGBColor(0xe3,0xf2,0xfd), 'vijay.kumar@npcindia.gov.in', sz=16, clr=NAVY, bold=True)
+sn(s,7,BLACK)
 
-add_slide_number(s, 4, BLACK)
+# 8-9. SECTION A: DG/DDG
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d,0x1b,0x4a), NAVY2)
+txt(s, 1, 2.0, 11, 0.5, 'SECTION A', sz=20, clr=RGBColor(0x99,0xaa,0xff), align=PP_ALIGN.CENTER)
+txt(s, 1, 2.8, 11, 1.0, '🏢  DG & DDG', sz=48, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1, 4.2, 11, 0.5, 'Organization-wide oversight', sz=22, clr=RGBColor(0xbb,0xbb,0xff), align=PP_ALIGN.CENTER)
+sn(s,8)
 
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 0.8, 0.4, 8, 0.6, 'DG / DDG Dashboard', sz=32, clr=NAVY, bold=True)
+box(s, 0.5, 1.3, 5.8, 5.3, LGREY)
+txt(s, 0.7, 1.4, 5.4, 0.5, '👁️  What You See', sz=22, clr=NAVY, bold=True)
+for i, it in enumerate(['All 12 department tabs', 'Employee summary per dept', 'Anomaly counts & deductions', 'Justification progress']):
+    txt(s, 1.0, 2.2 + i*0.8, 5.0, 0.5, '✓  ' + it, sz=20, clr=BLACK)
+box(s, 6.8, 1.3, 5.8, 5.3, RGBColor(0xe8,0xf5,0xe9))
+txt(s, 7.0, 1.4, 5.4, 0.5, '👆  What You Do', sz=22, clr=GREEN, bold=True)
+for i, it in enumerate(['Click dept → see employees', 'Click employee → daily detail', 'Monitor chronic late-comers', 'Oversight only (no action)']):
+    txt(s, 7.3, 2.2 + i*0.8, 5.0, 0.5, '✓  ' + it, sz=20, clr=BLACK)
+sn(s,9,BLACK)
 
-# ============================================================
-# SLIDE 5: SECTION A - DG/DDG
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_text_box(s, 1, 1.5, 11, 0.4, 'SECTION A', size=14,
-             color=RGBColor(0xaa, 0xaa, 0xff), align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 2.2, 11, 1.0, '🏢  DG & DDG', size=44,
-             bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 3.8, 11, 0.5, 'Organization-wide attendance oversight',
-             size=18, color=RGBColor(0xcc, 0xcc, 0xff), align=PP_ALIGN.CENTER)
-add_slide_number(s, 5)
+# 10-11. SECTION B: HEADS
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0xbf,0x36,0x0c), ORANGE)
+txt(s, 1, 2.0, 11, 0.5, 'SECTION B', sz=20, clr=RGBColor(0xff,0xcc,0x80), align=PP_ALIGN.CENTER)
+txt(s, 1, 2.8, 11, 1.0, '👥  Group Heads', sz=48, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1, 4.2, 11, 0.5, 'Review & decide on justifications', sz=22, clr=RGBColor(0xff,0xe0,0xb2), align=PP_ALIGN.CENTER)
+sn(s,10)
 
-
-# ============================================================
-# SLIDE 6: DG VIEW
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, WHITE)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, NAVY)
-add_text_box(s, 0.8, 0.8, 6, 0.6, 'DG / DDG: Your View', size=28, bold=True, color=NAVY)
-
-# Department tabs visual
-tabs = ['AB Group', 'Admin', 'ECA Group', 'Finance', 'HRM', 'IE Group']
-for i, tab in enumerate(tabs):
-    clr = WHITE if i != 2 else NAVY
-    bg = RGBColor(0xff, 0xf3, 0xe0) if i != 2 else WHITE
-    fc = ORANGE if i != 2 else ORANGE
-    add_shape_box(s, 1.0 + i * 1.8, 1.8, 1.5, 0.45, bg, tab, font_size=9, font_color=fc, bold=True)
-
-add_text_box(s, 1.0, 2.5, 10, 0.3, 'Click any department tab → see employee summary → click row → daily detail',
-             size=11, color=GREY)
-
-# What you see / do
-add_shape_box(s, 1.0, 3.2, 5.2, 3.2, LIGHT_BG)
-add_text_box(s, 1.2, 3.3, 5, 0.35, '👁️  What You See', size=14, bold=True, color=NAVY)
-items = ['All 12 departments as clickable tabs',
-         'Employee summary per department',
-         'Anomaly counts & leave deductions',
-         'Justification status at a glance']
-for i, item in enumerate(items):
-    add_text_box(s, 1.4, 3.8 + i * 0.45, 4.5, 0.35, '✓  ' + item, size=11, color=BLACK)
-
-add_shape_box(s, 6.8, 3.2, 5.5, 3.2, RGBColor(0xe8, 0xf5, 0xe9))
-add_text_box(s, 7.0, 3.3, 5, 0.35, '👆  What You Do', size=14, bold=True, color=GREEN)
-items2 = ['Click department → see employees',
-          'Click employee → see daily anomalies',
-          'Monitor chronic late-comers',
-          'View justification progress',
-          'No action required (oversight only)']
-for i, item in enumerate(items2):
-    add_text_box(s, 7.2, 3.8 + i * 0.45, 5, 0.35, '✓  ' + item, size=11, color=BLACK)
-
-add_slide_number(s, 6, BLACK)
-
-
-# ============================================================
-# SLIDE 7: SECTION B - GROUP HEADS
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0xbf, 0x36, 0x0c), ORANGE)
-add_text_box(s, 1, 1.5, 11, 0.4, 'SECTION B', size=14,
-             color=RGBColor(0xff, 0xcc, 0x80), align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 2.2, 11, 1.0, '👥  Group Heads', size=44,
-             bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 3.8, 11, 0.5, 'Review & decide on employee justifications',
-             size=18, color=RGBColor(0xff, 0xe0, 0xb2), align=PP_ALIGN.CENTER)
-add_slide_number(s, 7)
-
-
-# ============================================================
-# SLIDE 8: HEAD WORKFLOW
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, WHITE)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, ORANGE)
-add_text_box(s, 0.8, 0.8, 6, 0.5, 'Group Head: Workflow', size=28, bold=True, color=ORANGE)
-
-# Flow
-flow_items = [
-    ('📊\nDashboard', RGBColor(0xff, 0xe0, 0xb2), ORANGE),
-    ('🔍\nReview', RGBColor(0xff, 0xe0, 0xb2), ORANGE),
-    ('✅\nAccept', RGBColor(0xc8, 0xe6, 0xc9), GREEN),
-    ('❌\nDecline', RGBColor(0xff, 0xcd, 0xd2), RED),
-    ('❓\nQuery', RGBColor(0xff, 0xf3, 0xe0), ORANGE),
-]
-for i, (text, bg, fc) in enumerate(flow_items):
-    x = 0.8 + i * 2.5
-    add_shape_box(s, x, 1.7, 2.0, 1.2, bg, text, font_size=11, font_color=fc, bold=True)
-    if i < 2:
-        add_text_box(s, x + 2.05, 2.0, 0.4, 0.4, '→', size=20, color=GREY, align=PP_ALIGN.CENTER)
-
-# Status pills explanation
-add_shape_box(s, 0.8, 3.4, 6.0, 2.8, RGBColor(0xff, 0xf8, 0xe1))
-add_text_box(s, 1.0, 3.5, 5, 0.35, 'Status Indicators', size=14, bold=True, color=ORANGE)
-pills = [
-    ('12P', RGBColor(0x9e, 0x9e, 0x9e), 'Pending - employee hasn\'t submitted'),
-    ('5S', RGBColor(0x19, 0x76, 0xd2), 'Submitted - ready for your review'),
-    ('2Q', ORANGE, 'Queried - sent back to employee'),
-    ('8A', GREEN, 'Accepted - anomaly excluded'),
-    ('3D', RED, 'Declined - counts for deduction'),
-]
-for i, (pill, clr, desc) in enumerate(pills):
-    y = 4.0 + i * 0.4
-    add_shape_box(s, 1.2, y, 0.6, 0.3, clr, pill, font_size=9, font_color=WHITE, bold=True)
-    add_text_box(s, 2.0, y, 4.5, 0.3, desc, size=11, color=BLACK)
-
-# Tips
-add_shape_box(s, 7.3, 3.4, 5.0, 2.8, RGBColor(0xe8, 0xf5, 0xe9))
-add_text_box(s, 7.5, 3.5, 4.5, 0.35, '💡  Tips', size=14, bold=True, color=GREEN)
-tips = ['Use "Accept All" for bulk approvals',
-        'Add remarks when declining',
-        'Query sends notification to employee',
-        'Click employee name for full detail',
-        'Bulk actions save time']
-for i, tip in enumerate(tips):
-    add_text_box(s, 7.7, 4.0 + i * 0.4, 4.5, 0.35, '✓  ' + tip, size=11, color=BLACK)
-
-add_slide_number(s, 8, BLACK)
-
-
-# ============================================================
-# SLIDE 9: SECTION C - EMPLOYEES
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x1b, 0x5e, 0x20), GREEN)
-add_text_box(s, 1, 1.5, 11, 0.4, 'SECTION C', size=14,
-             color=RGBColor(0xa5, 0xd6, 0xa7), align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 2.2, 11, 1.0, '👤  Employees', size=44,
-             bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 3.8, 11, 0.5, 'View your attendance & justify anomalies',
-             size=18, color=RGBColor(0xc8, 0xe6, 0xc9), align=PP_ALIGN.CENTER)
-add_slide_number(s, 9)
-
-
-# ============================================================
-# SLIDE 10: EMPLOYEE - 3 STEPS
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, WHITE)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, GREEN)
-add_text_box(s, 0.8, 0.8, 6, 0.5, 'Employee: 3 Simple Steps', size=28, bold=True, color=GREEN)
-
-# 3 big numbered steps
-for i, (num, title, desc) in enumerate([
-    ('1', 'View Anomalies', 'See your attendance summary\nand day-wise anomaly list'),
-    ('2', 'Write Justification', 'Type your reason for each\nanomaly (tour, medical, etc.)'),
-    ('3', 'Submit', 'Click Submit → sent to Head\nSuccess message with timestamp'),
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 0.8, 0.4, 8, 0.6, 'Head: Your 3 Actions', sz=32, clr=ORANGE, bold=True)
+for i, (ic, ti, de, cl, bgc) in enumerate([
+    ('✅','Accept','Exclude anomaly\nNo leave deduction', GREEN, RGBColor(0xe8,0xf5,0xe9)),
+    ('❌','Decline','Count anomaly\nLeave deducted', RED, RGBColor(0xff,0xeb,0xee)),
+    ('❓','Query','Need more info\nBack to employee', ORANGE, RGBColor(0xff,0xf3,0xe0)),
 ]):
-    x = 1.0 + i * 4.0
-    # Number circle
-    add_shape_box(s, x + 0.8, 1.7, 0.8, 0.8, GREEN, num, font_size=28, bold=True)
-    add_text_box(s, x, 2.7, 3.2, 0.4, title, size=16, bold=True, color=GREEN, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, 3.2, 3.2, 0.8, desc, size=12, color=GREY, align=PP_ALIGN.CENTER)
+    x = 0.5 + i*4.2
+    box(s, x, 1.3, 3.8, 4.8, bgc)
+    txt(s, x, 1.5, 3.8, 0.8, ic, sz=52, align=PP_ALIGN.CENTER)
+    txt(s, x, 2.6, 3.8, 0.6, ti, sz=28, clr=cl, bold=True, align=PP_ALIGN.CENTER)
+    txt(s, x, 3.5, 3.8, 1.2, de, sz=20, clr=BLACK, align=PP_ALIGN.CENTER)
+txt(s, 0.8, 6.4, 12, 0.5, '💡  Bulk: "Accept All" / "Decline All" buttons available', sz=18, clr=GREY, align=PP_ALIGN.CENTER)
+sn(s,11,BLACK)
 
-# Summary cards mockup
-cards_data = [('58', 'Working\nDays', LIGHT_BG, NAVY), ('52', 'Present', RGBColor(0xe8,0xf5,0xe9), GREEN),
-              ('6', 'Anomalies', RGBColor(0xff,0xeb,0xee), RED), ('2.0', 'Leave\nDed.', RGBColor(0xff,0xf3,0xe0), ORANGE)]
-for i, (val, lbl, bg, fc) in enumerate(cards_data):
-    x = 1.5 + i * 2.8
-    add_shape_box(s, x, 4.5, 2.2, 1.4, bg)
-    add_text_box(s, x, 4.6, 2.2, 0.6, val, size=28, bold=True, color=fc, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, 5.2, 2.2, 0.5, lbl, size=10, color=GREY, align=PP_ALIGN.CENTER)
+# 12-13. SECTION C: EMPLOYEES
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x1b,0x5e,0x20), GREEN)
+txt(s, 1, 2.0, 11, 0.5, 'SECTION C', sz=20, clr=RGBColor(0xa5,0xd6,0xa7), align=PP_ALIGN.CENTER)
+txt(s, 1, 2.8, 11, 1.0, '👤  Employees', sz=48, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1, 4.2, 11, 0.5, 'View attendance & justify anomalies', sz=22, clr=RGBColor(0xc8,0xe6,0xc9), align=PP_ALIGN.CENTER)
+sn(s,12)
 
-# Offline note
-add_shape_box(s, 1.0, 6.2, 11.3, 0.55, RGBColor(0xff, 0xf3, 0xe0),
-              '🔌  Offline? Data auto-saved locally. Submits automatically when connection restores.',
-              font_size=11, font_color=ORANGE)
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 0.8, 0.4, 8, 0.6, 'Employee: 3 Simple Steps', sz=32, clr=GREEN, bold=True)
+for i, (n, ti, de) in enumerate([
+    ('1','View Anomalies','See: Late, Early\nShort Hours, Missing'),
+    ('2','Write Justification','Type reason:\ntour, medical, device'),
+    ('3','Click Submit','Sent to Head\nSuccess message shown'),
+]):
+    x = 0.5 + i*4.2
+    box(s, x, 1.3, 3.8, 1.0, GREEN, n, sz=40, bold=True)
+    txt(s, x, 2.6, 3.8, 0.5, ti, sz=22, clr=GREEN, bold=True, align=PP_ALIGN.CENTER)
+    txt(s, x, 3.3, 3.8, 1.2, de, sz=18, clr=BLACK, align=PP_ALIGN.CENTER)
+box(s, 1.0, 5.3, 5.0, 1.0, RGBColor(0xff,0xf3,0xe0), '🔌  Offline? Auto-saved locally', sz=18, clr=ORANGE)
+box(s, 6.5, 5.3, 5.8, 1.0, RGBColor(0xe3,0xf2,0xfd), '❓  Head queried? Update & re-submit', sz=18, clr=NAVY)
+sn(s,13,BLACK)
 
-add_slide_number(s, 10, BLACK)
+# 14. LEAVE RULES
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d,0x1b,0x4a), NAVY2)
+txt(s, 1, 0.4, 11, 0.6, 'Leave Deduction Rule', sz=36, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1.0, 1.5, 5.0, 1.5, '2', sz=100, clr=ORANGE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1.0, 3.4, 5.0, 0.5, 'Free anomaly days / month', sz=20, clr=RGBColor(0xcc,0xcc,0xff), align=PP_ALIGN.CENTER)
+txt(s, 1.0, 4.3, 5.0, 1.0, '0.5', sz=80, clr=ORANGE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1.0, 5.7, 5.0, 0.5, 'EL deducted per extra day', sz=20, clr=RGBColor(0xcc,0xcc,0xff), align=PP_ALIGN.CENTER)
+box(s, 6.5, 1.3, 6.0, 5.4, NAVY2)
+for i, (d, de, v) in enumerate([('1-2 days','0 EL','🟢🟢'), ('3 days','0.5 EL','🟢🟢🔴'), ('5 days','1.5 EL','🟢🟢🔴🔴🔴'), ('8 days','3.0 EL','🟢🟢+🔴×6'), ('12 days','5.0 EL','🟢🟢+🔴×10')]):
+    y = 1.5 + i*1.0
+    txt(s, 6.7, y, 2.0, 0.5, d, sz=20, clr=WHITE)
+    txt(s, 9.0, y, 1.5, 0.5, de, sz=20, clr=ORANGE if float(de.split()[0])>1 else WHITE, bold=True)
+    txt(s, 10.5, y, 2.0, 0.5, v, sz=18, clr=WHITE)
+sn(s,14)
 
+# 15-16. SECTION D: ADMIN
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x7f,0x00,0x00), RED)
+txt(s, 1, 2.0, 11, 0.5, 'SECTION D', sz=20, clr=RGBColor(0xff,0x8a,0x80), align=PP_ALIGN.CENTER)
+txt(s, 1, 2.8, 11, 1.0, '⚙️  Admin', sz=48, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1, 4.2, 11, 0.5, 'Upload, manage, finalize, export', sz=22, clr=RGBColor(0xff,0xcd,0xd2), align=PP_ALIGN.CENTER)
+sn(s,15)
 
-# ============================================================
-# SLIDE 11: LEAVE DEDUCTION
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, ORANGE)
-add_text_box(s, 0.8, 0.8, 4, 0.5, 'Leave Deduction', size=32, bold=True, color=WHITE)
+s = prs.slides.add_slide(BLANK)
+bg(s, WHITE)
+txt(s, 0.8, 0.4, 8, 0.6, 'Admin Capabilities', sz=32, clr=RED, bold=True)
+box(s, 0.5, 1.3, 5.8, 5.3, RGBColor(0xfc,0xe4,0xec))
+txt(s, 0.7, 1.4, 5.4, 0.5, '🔧  Management', sz=22, clr=RED, bold=True)
+for i, it in enumerate(['Upload biometric XLS per office', 'Add / edit / delete users', 'Reset employee passwords', 'Manage offices & departments', 'Configure anomaly rules']):
+    txt(s, 1.0, 2.2 + i*0.7, 5.0, 0.5, '✓  ' + it, sz=18, clr=BLACK)
+box(s, 6.8, 1.3, 5.8, 5.3, RGBColor(0xe8,0xea,0xf6))
+txt(s, 7.0, 1.4, 5.4, 0.5, '📊  Reports & Data', sz=22, clr=NAVY, bold=True)
+for i, it in enumerate(['Excel export (dept sheets)', 'PDF print-friendly report', 'Audit log (who, what, when)', 'eHRMS leave reconciliation', 'Holiday calendar']):
+    txt(s, 7.3, 2.2 + i*0.7, 5.0, 0.5, '✓  ' + it, sz=18, clr=BLACK)
+sn(s,16,BLACK)
 
-# Big numbers
-add_text_box(s, 1.5, 2.0, 3.5, 1.2, '2', size=80, bold=True, color=ORANGE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1.5, 3.5, 3.5, 0.4, 'Free anomaly days\nper month', size=13,
-             color=RGBColor(0xcc, 0xcc, 0xff), align=PP_ALIGN.CENTER)
+# 17. SECURITY
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d,0x1b,0x4a), NAVY2)
+txt(s, 1, 0.4, 11, 0.6, 'Security & Features', sz=32, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+for i, (ic, ti) in enumerate([('🔐','CSRF'), ('🔑','Password'), ('⏰','Timeout'), ('📝','Audit'), ('🌐','GIGW 3.0'), ('📱','Mobile'), ('🇮🇳','Hindi'), ('🔌','Offline'), ('📊','Charts'), ('⏱️','Rate Limit')]):
+    r, c = divmod(i, 5)
+    x, y = 0.5 + c*2.5, 1.4 + r*2.7
+    box(s, x, y, 2.2, 2.2, WHITE)
+    txt(s, x, y+0.2, 2.2, 0.8, ic, sz=36, align=PP_ALIGN.CENTER)
+    txt(s, x, y+1.2, 2.2, 0.5, ti, sz=18, clr=NAVY, bold=True, align=PP_ALIGN.CENTER)
+sn(s,17)
 
-add_text_box(s, 1.5, 4.5, 3.5, 0.8, '0.5', size=56, bold=True, color=ORANGE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1.5, 5.5, 3.5, 0.4, 'EL deducted per\nextra anomaly day', size=13,
-             color=RGBColor(0xcc, 0xcc, 0xff), align=PP_ALIGN.CENTER)
+# 18. THANK YOU
+s = prs.slides.add_slide(BLANK)
+grad(s, RGBColor(0x0d,0x1b,0x4a), NAVY2)
+txt(s, 1, 1.8, 11, 1.0, 'Thank You', sz=52, clr=WHITE, bold=True, align=PP_ALIGN.CENTER)
+txt(s, 1, 3.2, 11, 0.5, 'NPC Biometric Attendance Management System', sz=22, clr=RGBColor(0xbb,0xbb,0xff), align=PP_ALIGN.CENTER)
+box(s, 3.5, 4.3, 6.3, 1.6, NAVY2)
+txt(s, 3.5, 4.5, 6.3, 0.5, '📧  vijay.kumar@npcindia.gov.in', sz=22, clr=WHITE, align=PP_ALIGN.CENTER)
+txt(s, 3.5, 5.1, 6.3, 0.5, '🌐  npc-biometric-attendance.up.railway.app', sz=20, clr=WHITE, align=PP_ALIGN.CENTER)
+txt(s, 1, 6.3, 11, 0.4, 'National Productivity Council  •  Ministry of Commerce & Industry  •  Govt. of India', sz=16, clr=RGBColor(0x88,0x88,0xcc), align=PP_ALIGN.CENTER)
+sn(s,18)
 
-# Table
-table_data = [('1-2 days', '0 EL', '🟢🟢'),
-              ('3 days', '0.5 EL', '🟢🟢🔴'),
-              ('5 days', '1.5 EL', '🟢🟢🔴🔴🔴'),
-              ('8 days', '3.0 EL', '🟢🟢🔴🔴🔴🔴🔴🔴'),
-              ('12 days', '5.0 EL', '🟢🟢🔴 ×10')]
-
-add_shape_box(s, 6.0, 1.8, 6.2, 4.5, RGBColor(0x1a, 0x23, 0x7e))
-add_text_box(s, 6.3, 1.9, 1.8, 0.4, 'Anomaly Days', size=11, bold=True,
-             color=RGBColor(0xaa, 0xaa, 0xff))
-add_text_box(s, 8.3, 1.9, 1.5, 0.4, 'Deduction', size=11, bold=True,
-             color=RGBColor(0xaa, 0xaa, 0xff))
-add_text_box(s, 10.0, 1.9, 2.0, 0.4, 'Visual', size=11, bold=True,
-             color=RGBColor(0xaa, 0xaa, 0xff))
-
-for i, (days, ded, viz) in enumerate(table_data):
-    y = 2.5 + i * 0.7
-    color = WHITE
-    if '3.0' in ded or '5.0' in ded:
-        color = ORANGE
-    add_text_box(s, 6.3, y, 1.8, 0.4, days, size=13, color=WHITE)
-    add_text_box(s, 8.3, y, 1.5, 0.4, ded, size=13, bold=True, color=color)
-    add_text_box(s, 10.0, y, 2.0, 0.4, viz, size=12, color=WHITE)
-
-add_text_box(s, 6.3, 6.1, 5.5, 0.4, '🟢 = Free    🔴 = 0.5 EL each    ✅ Accepted = excluded',
-             size=10, color=RGBColor(0x99, 0x99, 0xcc))
-
-add_slide_number(s, 11)
-
-
-# ============================================================
-# SLIDE 12: SECTION D - ADMIN
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x7f, 0x00, 0x00), RED)
-add_text_box(s, 1, 1.5, 11, 0.4, 'SECTION D', size=14,
-             color=RGBColor(0xff, 0x8a, 0x80), align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 2.2, 11, 1.0, '⚙️  Admin', size=44,
-             bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 3.8, 11, 0.5, 'Upload, manage, finalize, export',
-             size=18, color=RGBColor(0xff, 0xcd, 0xd2), align=PP_ALIGN.CENTER)
-add_slide_number(s, 12)
-
-
-# ============================================================
-# SLIDE 13: ADMIN PROCESS
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, WHITE)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, RED)
-add_text_box(s, 0.8, 0.8, 6, 0.5, 'Admin: Monthly Process', size=28, bold=True, color=RED)
-
-# Process flow
-admin_steps = [
-    ('📁\nUpload', RGBColor(0xff,0xcd,0xd2), RED),
-    ('⚡\nAnalyze', RGBColor(0xe3,0xf2,0xfd), NAVY),
-    ('⏳\nWait', RGBColor(0xff,0xf3,0xe0), ORANGE),
-    ('✅\nFinalize', RGBColor(0xc8,0xe6,0xc9), GREEN),
-    ('📄\nExport', RGBColor(0xe8,0xea,0xf6), NAVY),
-]
-for i, (text, bg, fc) in enumerate(admin_steps):
-    x = 0.6 + i * 2.5
-    add_shape_box(s, x, 1.6, 2.0, 1.1, bg, text, font_size=11, font_color=fc, bold=True)
-    if i < 4:
-        add_text_box(s, x + 2.05, 1.8, 0.4, 0.5, '→', size=20, color=GREY, align=PP_ALIGN.CENTER)
-
-# Two columns
-add_shape_box(s, 0.8, 3.2, 5.8, 3.5, RGBColor(0xfc, 0xe4, 0xec))
-add_text_box(s, 1.0, 3.3, 5, 0.35, '🔧  Admin Tools', size=14, bold=True, color=RED)
-tools = ['User management (add/edit/reset/delete)',
-         'Office & department management',
-         'Holiday calendar management',
-         'Anomaly rules configuration',
-         'Password reset for employees']
-for i, tool in enumerate(tools):
-    add_text_box(s, 1.2, 3.8 + i * 0.45, 5, 0.35, '✓  ' + tool, size=11, color=BLACK)
-
-add_shape_box(s, 7.0, 3.2, 5.5, 3.5, RGBColor(0xe8, 0xea, 0xf6))
-add_text_box(s, 7.2, 3.3, 5, 0.35, '📊  Reports & Data', size=14, bold=True, color=NAVY)
-reports = ['Excel export (dept-wise sheets)',
-           'PDF print-friendly report',
-           'Audit log (who did what, when)',
-           'eHRMS leave reconciliation',
-           'Chart.js visual analytics']
-for i, rep in enumerate(reports):
-    add_text_box(s, 7.4, 3.8 + i * 0.45, 5, 0.35, '✓  ' + rep, size=11, color=BLACK)
-
-add_slide_number(s, 13, BLACK)
-
-
-# ============================================================
-# SLIDE 14: SECURITY
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, ORANGE)
-add_text_box(s, 0.8, 0.8, 6, 0.5, 'Security & Compliance', size=32, bold=True, color=WHITE)
-
-features = [
-    ('🔐', 'CSRF', 'All forms protected'),
-    ('🔑', 'Password', 'Strength + forced change'),
-    ('⏰', 'Timeout', '30 min auto-logout'),
-    ('📝', 'Audit', 'Every action logged'),
-    ('🌐', 'GIGW 3.0', 'Compliant UI'),
-    ('📱', 'Mobile', 'Responsive design'),
-    ('🇮🇳', 'Hindi', 'Bilingual ready'),
-    ('🔌', 'Offline', 'Local data save'),
-    ('📊', 'Charts', 'Visual analytics'),
-    ('⏱️', 'Rate Limit', 'Brute-force protected'),
-]
-for i, (icon, val, desc) in enumerate(features):
-    row = i // 5
-    col = i % 5
-    x = 0.8 + col * 2.4
-    y = 1.8 + row * 2.4
-    add_shape_box(s, x, y, 2.0, 1.8, WHITE)
-    add_text_box(s, x, y + 0.15, 2.0, 0.5, icon, size=26, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, y + 0.7, 2.0, 0.4, val, size=14, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, y + 1.15, 2.0, 0.4, desc, size=9, color=GREY, align=PP_ALIGN.CENTER)
-
-add_slide_number(s, 14)
-
-
-# ============================================================
-# SLIDE 15: TECH STACK
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(s, LIGHT_BG)
-add_shape_box(s, 0.8, 0.6, 0.5, 0.06, NAVY)
-add_text_box(s, 0.8, 0.8, 6, 0.5, 'Technology Stack', size=28, bold=True, color=NAVY)
-
-stack = [('Backend', 'Python Flask (12 Blueprints)'),
-         ('Database', 'PostgreSQL (18 tables)'),
-         ('ORM', 'SQLAlchemy + Flask-Migrate'),
-         ('Auth', 'Flask-Login + CSRF'),
-         ('Frontend', 'Jinja2 + Chart.js'),
-         ('Hosting', 'Railway (Cloud PaaS)'),
-         ('Testing', 'Playwright (42 E2E tests)')]
-
-add_shape_box(s, 0.8, 1.6, 7, 5.0, WHITE)
-for i, (layer, tech) in enumerate(stack):
-    y = 1.8 + i * 0.65
-    add_text_box(s, 1.2, y, 2.5, 0.4, layer, size=12, bold=True, color=NAVY)
-    add_text_box(s, 3.8, y, 4, 0.4, tech, size=12, color=BLACK)
-    if i < 6:
-        # Divider line
-        add_shape_box(s, 1.2, y + 0.5, 6.2, 0.01, RGBColor(0xee, 0xee, 0xee))
-
-# Big stats
-for i, (val, lbl, clr) in enumerate([('49', 'API Routes', NAVY),
-                                       ('18', 'DB Tables', GREEN),
-                                       ('42', 'Tests', ORANGE)]):
-    x = 8.5
-    y = 1.8 + i * 1.8
-    add_shape_box(s, x, y, 3.8, 1.4, RGBColor(0xe8, 0xea, 0xf6) if i == 0
-                  else (RGBColor(0xe8, 0xf5, 0xe9) if i == 1 else RGBColor(0xff, 0xf3, 0xe0)))
-    add_text_box(s, x, y + 0.1, 3.8, 0.7, val, size=36, bold=True, color=clr, align=PP_ALIGN.CENTER)
-    add_text_box(s, x, y + 0.85, 3.8, 0.3, lbl, size=11, color=GREY, align=PP_ALIGN.CENTER)
-
-add_slide_number(s, 15, BLACK)
-
-
-# ============================================================
-# SLIDE 16: THANK YOU
-# ============================================================
-s = prs.slides.add_slide(prs.slide_layouts[6])
-add_gradient_bg(s, RGBColor(0x0d, 0x1b, 0x4a), NAVY_LIGHT)
-add_text_box(s, 1, 1.5, 11, 1.0, 'Thank You', size=48,
-             bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-add_text_box(s, 1, 3.0, 11, 0.5, 'NPC Biometric Attendance Management System',
-             size=18, color=RGBColor(0xcc, 0xcc, 0xff), align=PP_ALIGN.CENTER)
-
-add_shape_box(s, 3.5, 4.0, 6, 1.5, RGBColor(0x28, 0x35, 0x93))
-add_text_box(s, 3.5, 4.2, 6, 0.4, '📧  Support: vijay.kumar@npcindia.gov.in',
-             size=14, color=WHITE, align=PP_ALIGN.CENTER)
-add_text_box(s, 3.5, 4.7, 6, 0.4, '🌐  npc-biometric-attendance.up.railway.app',
-             size=14, color=WHITE, align=PP_ALIGN.CENTER)
-
-add_text_box(s, 1, 6.0, 11, 0.5,
-             'National Productivity Council  •  Ministry of Commerce & Industry  •  Government of India',
-             size=11, color=RGBColor(0x99, 0x99, 0xcc), align=PP_ALIGN.CENTER)
-add_slide_number(s, 16)
-
-
-# ============================================================
-# SAVE
-# ============================================================
-output_path = 'docs/NPC_Biometric_v2.pptx'
-prs.save(output_path)
-print(f'PPT saved: {output_path}')
-print(f'Slides: {len(prs.slides)}')
+prs.save('docs/NPC_Biometric_v2.pptx')
+print(f'Saved: 18 slides, all text 16pt+')
