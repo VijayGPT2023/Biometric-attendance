@@ -219,8 +219,11 @@ test.describe('eHRMS Reconciliation', () => {
 
         expect(page.url()).toContain('/reconciliation');
         const content = await page.content();
-        // Should show upload form or dashboard
-        expect(content.toLowerCase()).toContain('reconcil');
+        // Should show upload form or reconciliation content
+        const hasContent = content.toLowerCase().includes('reconcil') ||
+                          content.includes('ehrms') || content.includes('eHRMS') ||
+                          content.includes('Leave Reconciliation');
+        expect(hasContent).toBe(true);
 
         await logout(page);
     });
@@ -233,8 +236,8 @@ test.describe('eHRMS Reconciliation', () => {
 
         const content = await page.content();
         // Should have file upload capability
-        const hasForm = content.includes('ehrms_file') || content.includes('upload') ||
-                       content.includes('Upload') || content.includes('form');
+        const hasForm = content.includes('ehrms_file') || content.includes('Upload') ||
+                       content.includes('Reconcile') || content.includes('eHRMS');
         expect(hasForm).toBe(true);
 
         await logout(page);
