@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Data Management - Admin{% endblock %}
+{% block content %}
+
+<!-- Session Management -->
+<div class="card">
+    <h2>Upload Sessions</h2>
+    <p style="font-size:0.85rem; color:#666; margin-bottom:16px;">
+        Manage uploaded attendance data. Delete old sessions or re-upload to replace.
+    </p>
+    {% if sessions %}
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th class="center">Employees</th>
+                <th class="center">Anomalies</th>
+                <th>Files</th>
+                <th>Uploaded</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sessions %}
+            <tr>
+                <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
+                <td class="center">{{ s.employee_count }}</td>
+                <td class="center">{{ s.anomaly_count }}</td>
+                <td style="font-size:0.75rem; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ s.original_filenames }}</td>
+                <td>{{ s.created_at.strftime('%d-%b %H:%M') if s.created_at else '' }}</td>
+                <td><span class="badge badge-accepted">{{ s.status }}</span></td>
+                <td>
+                    <a href="{{ url_for('reports.view_report', session_uuid=s.session_uuid) }}" class="btn btn-sm btn-info">Report</a>
+                    <a href="{{ url_for('reports.export_excel', session_uuid=s.session_uuid) }}" class="btn btn-sm btn-success">Excel</a>
+                    <form action="{{ url_for('admin.delete_session', session_uuid=s.session_uuid) }}" method="post" style="display:inline;"
+                          onsubmit="return confirm('Delete session {{ s.start_date }} to {{ s.end_date }}? This will remove all justifications and data for this period.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No sessions uploaded yet.</p>
+    {% endif %}
+</div>
+
+<!-- Quick Add Employee -->
+<div class="card">
+    <h2>Quick Add Employee</h2>
+    <form action="{{ url_for('admin.add_user') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Employee Code (as in biometric XLS)</label>
+                <input type="text" name="emp_code" placeholder="e.g. S100" required>
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" placeholder="e.g. Ravi Kumar" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="text" name="password" value="npc123" required>
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role">
+                    <option value="employee" selected>Employee</option>
+                    <option value="head">Head</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Office</label>
+                <select name="office_id">
+                    {% for o in offices %}
+                    <option value="{{ o.id }}">{{ o.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Employee</button>
+    </form>
+</div>
+
+<!-- Employee List with Remove -->
+<div class="card">
+    <h2>Employee Directory ({{ users|length }})</h2>
+    <div style="margin-bottom:12px;">
+        <input type="text" id="empSearch" placeholder="Search by name or code..."
+               style="padding:8px 14px; border:1px solid #ddd; border-radius:6px; width:300px; font-size:0.9rem;"
+               oninput="filterEmps()">
+    </div>
+    <div class="table-wrap">
+    <table id="empTable">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr class="emp-row">
+                <td>{{ u.emp_code }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.name }}</td>
+                <td><span class="badge badge-{{ 'accepted' if u.role == 'employee' else ('query' if u.role == 'head' else 'declined') }}">{{ u.role }}</span></td>
+                <td>{{ 'Yes' if u.is_active else 'No' }}</td>
+                <td>
+                    {% if u.emp_code != 'admin' %}
+                    <form action="{{ url_for('admin.reset_password', user_id=u.id) }}" method="post" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-success" title="Reset to npc123"
+                                onclick="return confirm('Reset password for {{ u.name }}?')">Reset PW</button>
+                    </form>
+                    <form action="{{ url_for('admin.delete_user', user_id=u.id) }}" method="post" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Remove {{ u.name }}? This will deactivate the account.')">Remove</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<script>
+function filterEmps() {
+    var q = document.getElementById('empSearch').value.toLowerCase();
+    var rows = document.querySelectorAll('.emp-row');
+    rows.forEach(function(r) {
+        var text = r.textContent.toLowerCase();
+        r.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

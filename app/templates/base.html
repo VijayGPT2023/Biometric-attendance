@@ -47,6 +47,7 @@
                 {% if current_user.role in ('super_admin', 'admin') %}
                 <a href="{{ url_for('admin.dashboard') }}" {% if request.path.startswith('/admin') %}class="active"{% endif %}>Dashboard</a>
                 <a href="{{ url_for('admin.users') }}" {% if '/users' in request.path %}class="active"{% endif %}>Users</a>
+                <a href="{{ url_for('admin.data_management') }}" {% if '/data-management' in request.path %}class="active"{% endif %}>Data</a>
                 <a href="{{ url_for('holidays.calendar') }}" {% if '/holidays' in request.path %}class="active"{% endif %}>Holidays</a>
                 <a href="{{ url_for('reconciliation.dashboard') }}" {% if '/reconciliation' in request.path %}class="active"{% endif %}>Reconcile</a>
                 <a href="{{ url_for('head.habitual_list') }}" {% if '/habitual' in request.path %}class="active"{% endif %}>Habitual</a>

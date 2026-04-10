@@ -262,6 +262,45 @@ def finalize(session_uuid):
     return redirect(url_for('admin.review', session_uuid=session_uuid))
 
 
+@admin_bp.route('/sessions/<session_uuid>/delete', methods=['POST'])
+@_admin_required
+def delete_session(session_uuid):
+    """Delete an upload session and all its data."""
+    upload_session = UploadSession.query.filter_by(session_uuid=session_uuid).first()
+    if not upload_session:
+        flash('Session not found.')
+        return redirect(url_for('admin.dashboard'))
+
+    # Delete justifications
+    Justification.query.filter_by(session_uuid=session_uuid).delete()
+    # Delete JSON data file
+    data_path = os.path.join(current_app.config['DATA_FOLDER'], f"{session_uuid}.json")
+    try:
+        os.remove(data_path)
+    except OSError:
+        pass
+    # Delete session record
+    db.session.delete(upload_session)
+    db.session.commit()
+
+    AuditLog.log('session_delete', user_id=current_user.id,
+                 resource_type='upload_session', resource_id=session_uuid,
+                 ip_address=request.headers.get('X-Forwarded-For', request.remote_addr))
+    flash(f'Session {upload_session.start_date} to {upload_session.end_date} deleted.')
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/data-management')
+@_admin_required
+def data_management():
+    """Admin data management page: sessions, bulk operations."""
+    sessions = UploadSession.query.order_by(UploadSession.created_at.desc()).all()
+    users = User.query.filter_by(is_deleted=False).order_by(User.name).all()
+    offices = Office.query.order_by(Office.name).all()
+    return render_template('admin/data_management.html',
+                           sessions=sessions, users=users, offices=offices)
+
+
 @admin_bp.route('/report/<session_uuid>')
 @_admin_required
 def report(session_uuid):
