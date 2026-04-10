@@ -1,40 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ page_title|default('NPC Biometric') }}</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;background:#f0f2f5}
-.nav{background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
-.nav h1{font-size:1.1rem}
-.nav a{color:rgba(255,255,255,0.85);text-decoration:none;margin-left:16px;font-size:0.88rem;padding:6px 12px;border-radius:5px}
-.nav a:hover{background:rgba(255,255,255,0.2)}
-.container{max-width:1100px;margin:24px auto;padding:0 20px}
-.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:24px}
-.card h2{font-size:1.1rem;margin-bottom:16px;border-bottom:2px solid #1a237e;padding-bottom:8px}
-.flash{background:#d4edda;color:#155724;border:1px solid #c3e6cb;padding:12px;border-radius:8px;margin-bottom:18px;font-size:0.9rem}
-</style>
-</head>
-<body>
-<div class="nav">
-<h1>NPC Biometric Attendance</h1>
-<div>
-<a href="/">Dashboard</a>
-<a href="/change-password">Password</a>
-<a href="/logout">Logout</a>
-</div>
-</div>
-<div class="container">
-{% with messages = get_flashed_messages() %}
-{% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
-{% endwith %}
+{% extends "base.html" %}
+{% block title %}eHRMS Leave Reconciliation{% endblock %}
 {% block content %}
+
 <div class="card">
-<h2>{{ page_title|default('Page Under Construction') }}</h2>
-<p>This module is being built. Check back soon.</p>
+    <h2>eHRMS Leave Reconciliation</h2>
+    <p style="font-size:0.85rem; color:#666; margin-bottom:16px;">
+        Upload leave data from eHRMS to match against biometric absences.
+        Flags: absent without leave, unapproved leave, mismatches.
+    </p>
+
+    <form action="{{ url_for('reconciliation.upload_ehrms') }}" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row">
+            <div class="form-group" style="flex:2;">
+                <label>eHRMS Leave Data (.csv / .xlsx)</label>
+                <input type="file" name="ehrms_file" accept=".csv,.xls,.xlsx" required>
+                <div style="font-size:0.75rem; color:#888; margin-top:4px;">
+                    Columns: Email, Type, From Date, To Date, Apply Status
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Match Against Session</label>
+                <select name="session_uuid" required>
+                    <option value="">-- Select Period --</option>
+                    {% for s in sessions %}
+                    <option value="{{ s.session_uuid }}">{{ s.start_date }} to {{ s.end_date }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload & Reconcile</button>
+    </form>
 </div>
+
+{% if batches %}
+<div class="card">
+    <h2>Previous Reconciliation Results</h2>
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Batch</th>
+                <th class="center">Leave Records</th>
+                <th>Uploaded</th>
+                <th class="center">Matched</th>
+                <th class="center">Absent No Leave</th>
+                <th class="center">Mismatch</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in batches %}
+            <tr>
+                <td>{{ b.upload_batch_id[:8] }}...</td>
+                <td class="center">{{ b.count }}</td>
+                <td>{{ b.uploaded_at }}</td>
+                <td class="center text-success">{{ recon_summary.get(b.upload_batch_id, {}).get('matched', 0) }}</td>
+                <td class="center text-danger">{{ recon_summary.get(b.upload_batch_id, {}).get('absent_no_leave', 0) }}</td>
+                <td class="center text-warn">{{ recon_summary.get(b.upload_batch_id, {}).get('mismatch', 0) }}</td>
+                <td><a href="{{ url_for('reconciliation.results', batch_id=b.upload_batch_id) }}" class="btn btn-sm btn-info">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
-</div>
-</body>
-</html>
