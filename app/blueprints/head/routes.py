@@ -125,7 +125,8 @@ def employee_detail(session_uuid, emp_code):
     ).order_by(Justification.anomaly_date).all()
     just_map = {j.anomaly_date.isoformat(): {
         'id': j.id, 'justification': j.justification, 'status': j.status,
-        'head_remark': j.head_remark,
+        'head_remark': j.head_remark, 'query_count': j.query_count or 0,
+        'employee_reply': j.employee_reply or '',
     } for j in justs}
 
     upload_session = UploadSession.query.filter_by(session_uuid=session_uuid).first()
@@ -203,7 +204,12 @@ def submit(session_uuid):
                 ).filter(
                     db.func.cast(Justification.anomaly_date, db.String) == anomaly_date
                 ).first()
-                if j and j.status in ('submitted', 'resubmitted', 'query'):
+                if j and j.status in ('submitted', 'resubmitted'):
+                    if value == 'query':
+                        if j.query_count >= 2:
+                            # Max queries reached, force accept or decline
+                            continue
+                        j.query_count = (j.query_count or 0) + 1
                     j.status = value  # accepted, declined, query
                     j.head_remark = head_remark
                     j.head_reviewed_by = current_user.id
@@ -215,3 +221,75 @@ def submit(session_uuid):
                  ip_address=request.headers.get('X-Forwarded-For', request.remote_addr))
     flash('Decisions submitted.')
     return redirect(url_for('head.review', session_uuid=session_uuid))
+
+
+@head_bp.route('/habitual')
+@login_required
+def habitual_list():
+    """Habitual late-comer list: >6 anomalies for 3 consecutive months."""
+    if current_user.role not in ('super_admin', 'admin', 'head'):
+        flash('Access denied.')
+        return redirect(url_for('auth.dashboard'))
+
+    managed_depts = _get_managed_depts()
+
+    # Get all sessions ordered by date
+    sessions = UploadSession.query.order_by(UploadSession.start_date).all()
+
+    # Build monthly anomaly counts per employee across all sessions
+    from collections import defaultdict
+    emp_monthly = defaultdict(lambda: defaultdict(int))  # emp_code -> {(year,month): count}
+    emp_names = {}
+    emp_depts = {}
+
+    for session in sessions:
+        data_path = os.path.join(current_app.config['DATA_FOLDER'], f"{session.session_uuid}.json")
+        if not os.path.exists(data_path):
+            continue
+        with open(data_path) as f:
+            data = json.load(f)
+        from app.blueprints.attendance.serializers import deserialize_results
+        results, start_date, end_date, params = deserialize_results(data)
+
+        for r in results:
+            if r['department'] not in managed_depts:
+                continue
+            emp_names[r['emp_code']] = r['emp_name']
+            emp_depts[r['emp_code']] = r['department']
+            for ad in r.get('all_anomaly_dates', []):
+                emp_monthly[r['emp_code']][(ad.year, ad.month)] += 1
+
+    # Find employees with >6 anomalies for 3 consecutive months
+    habitual = []
+    for emp_code, monthly in emp_monthly.items():
+        sorted_months = sorted(monthly.keys())
+        consecutive = 0
+        streak_months = []
+        for i, ym in enumerate(sorted_months):
+            if monthly[ym] > 6:
+                consecutive += 1
+                streak_months.append(ym)
+                if consecutive >= 3:
+                    habitual.append({
+                        'emp_code': emp_code,
+                        'emp_name': emp_names.get(emp_code, ''),
+                        'department': emp_depts.get(emp_code, ''),
+                        'months': streak_months[-3:],
+                        'counts': [monthly[m] for m in streak_months[-3:]],
+                    })
+                    break
+            else:
+                consecutive = 0
+                streak_months = []
+            # Check continuity
+            if i > 0:
+                prev = sorted_months[i-1]
+                if ym[0] == prev[0] and ym[1] == prev[1] + 1:
+                    pass  # consecutive
+                elif ym[0] == prev[0] + 1 and ym[1] == 1 and prev[1] == 12:
+                    pass  # Jan after Dec
+                else:
+                    consecutive = 1 if monthly[ym] > 6 else 0
+                    streak_months = [ym] if monthly[ym] > 6 else []
+
+    return render_template('head/habitual.html', habitual=habitual)

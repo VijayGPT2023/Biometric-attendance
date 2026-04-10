@@ -176,7 +176,25 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
 
     effective_anomalies = anomaly_dates - permitted_dates
     total_anomalies = len(effective_anomalies)
-    leave_deduction = max(0, (total_anomalies - allowed_anomalies) * 0.5)
+
+    # Monthly breakup: leave deduction = ROUNDDOWN(anomaly_count / 3) per month
+    # Each month calculated independently, then summed
+    from collections import defaultdict
+    monthly_anomalies = defaultdict(int)
+    for ad in effective_anomalies:
+        monthly_anomalies[(ad.year, ad.month)] += 1
+
+    monthly_breakup = []
+    total_leave_deduction = 0
+    for (year, month), count in sorted(monthly_anomalies.items()):
+        deduction = count // 3  # ROUNDDOWN(anomaly/3)
+        total_leave_deduction += deduction
+        monthly_breakup.append({
+            'year': year, 'month': month,
+            'month_name': f"{year}-{month:02d}",
+            'anomaly_count': count,
+            'leave_deduction': deduction,
+        })
 
     return {
         'emp_code': emp['emp_code'],
@@ -205,5 +223,6 @@ def analyze_employee(emp, start_date, end_date, late_threshold, early_threshold,
         'effective_anomaly_dates': sorted(effective_anomalies),
         'effective_anomaly_count': total_anomalies,
         'allowed_anomalies': allowed_anomalies,
-        'leave_deduction': leave_deduction,
+        'monthly_breakup': monthly_breakup,
+        'leave_deduction': total_leave_deduction,
     }

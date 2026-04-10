@@ -170,12 +170,23 @@
                                 {% endif %}
                             </td>
                             <td style="min-width: 200px;">
-                                {% if j.get('status') in ('pending', 'query') %}
+                                {% if j.get('status') == 'pending' %}
                                     <textarea name="justification_{{ date_str }}"
                                               placeholder="Enter your reason/justification...">{{ j.get('justification', '') }}</textarea>
-                                    {% if j.get('head_remark') %}
+                                {% elif j.get('status') == 'query' %}
+                                    <div style="font-size:0.82rem; margin-bottom:4px;">
+                                        <strong>Your justification:</strong> {{ j.get('justification', '') }}
+                                    </div>
                                     <div class="head-remark">
-                                        <strong>Head's Query:</strong> {{ j.head_remark }}
+                                        <strong>Head's Query ({{ j.get('query_count', 1) }}/2):</strong> {{ j.get('head_remark', '') }}
+                                    </div>
+                                    <textarea name="justification_{{ date_str }}"
+                                              placeholder="Type your reply to Head's query..." style="margin-top:6px;"></textarea>
+                                {% elif j.get('status') == 'resubmitted' %}
+                                    <em style="color:#1976d2; font-size:0.82rem;">{{ j.get('justification', '') }}</em>
+                                    {% if j.get('employee_reply') %}
+                                    <div style="background:#e3f2fd; padding:4px 8px; border-radius:4px; font-size:0.8rem; margin-top:4px;">
+                                        <strong>Your Reply:</strong> {{ j.get('employee_reply', '') }}
                                     </div>
                                     {% endif %}
                                 {% elif j.get('status') == 'submitted' %}

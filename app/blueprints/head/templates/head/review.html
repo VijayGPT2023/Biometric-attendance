@@ -181,12 +181,14 @@
                                         <option value="">-- Select --</option>
                                         <option value="accepted">Accept</option>
                                         <option value="declined">Decline</option>
-                                        <option value="query">Query</option>
+                                        {% if (j.get('query_count', 0) or 0) < 2 %}
+                                        <option value="query">Query ({{ j.get('query_count', 0) or 0 }}/2 used)</option>
+                                        {% endif %}
                                     </select>
                                     {% elif j.get('status') in ('accepted', 'declined') %}
                                     <span style="font-size:0.8rem; color:#888;">{{ j.status }}</span>
                                     {% elif j.get('status') == 'query' %}
-                                    <span style="font-size:0.8rem; color:#f57c00;">Waiting response</span>
+                                    <span style="font-size:0.8rem; color:#f57c00;">Waiting reply ({{ j.get('query_count', 0) or 0 }}/2)</span>
                                     {% else %}
                                     <span style="font-size:0.8rem; color:#bbb;">-</span>
                                     {% endif %}

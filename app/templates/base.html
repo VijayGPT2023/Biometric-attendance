@@ -49,10 +49,12 @@
                 <a href="{{ url_for('admin.users') }}" {% if '/users' in request.path %}class="active"{% endif %}>Users</a>
                 <a href="{{ url_for('holidays.calendar') }}" {% if '/holidays' in request.path %}class="active"{% endif %}>Holidays</a>
                 <a href="{{ url_for('reconciliation.dashboard') }}" {% if '/reconciliation' in request.path %}class="active"{% endif %}>Reconcile</a>
+                <a href="{{ url_for('head.habitual_list') }}" {% if '/habitual' in request.path %}class="active"{% endif %}>Habitual</a>
                 <a href="{{ url_for('settings.index') }}" {% if '/settings' in request.path %}class="active"{% endif %}>Settings</a>
                 <a href="{{ url_for('audit.index') }}" {% if '/audit' in request.path %}class="active"{% endif %}>Audit</a>
                 {% elif current_user.role == 'head' %}
-                <a href="{{ url_for('head.dashboard') }}" {% if request.path.startswith('/head') %}class="active"{% endif %}>Dashboard</a>
+                <a href="{{ url_for('head.dashboard') }}" {% if request.path.startswith('/head') and '/habitual' not in request.path %}class="active"{% endif %}>Dashboard</a>
+                <a href="{{ url_for('head.habitual_list') }}" {% if '/habitual' in request.path %}class="active"{% endif %}>Habitual</a>
                 <a href="{{ url_for('holidays.calendar') }}">Holidays</a>
                 {% elif current_user.role == 'auditor' %}
                 <a href="{{ url_for('audit.index') }}">Audit Log</a>

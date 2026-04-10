@@ -70,27 +70,63 @@ def upload_ehrms():
         flash(f'Error reading file: {e}')
         return redirect(url_for('reconciliation.dashboard'))
 
-    # Expected columns: emp_code, leave_from, leave_to, leave_type, leave_status
-    required = {'emp_code', 'leave_from', 'leave_to', 'leave_type'}
-    df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
-    missing = required - set(df.columns)
-    if missing:
-        flash(f'Missing columns in file: {", ".join(missing)}. '
-              f'Expected: emp_code, leave_from, leave_to, leave_type, leave_status (optional)')
-        return redirect(url_for('reconciliation.dashboard'))
+    # Support both eHRMS format and generic format
+    df.columns = [c.strip() for c in df.columns]
+
+    # Detect eHRMS format (has 'Email' and 'From Date' columns)
+    is_ehrms = 'Email' in df.columns and 'From Date' in df.columns
+
+    if is_ehrms:
+        # eHRMS format: S.No, Type, Leave Application No, Employee Name, Email,
+        # Designation, From Date, To Date, Apply Status, ...
+        df = df.rename(columns={
+            'Type': 'leave_type', 'Employee Name': 'emp_name', 'Email': 'email',
+            'Designation': 'designation', 'From Date': 'leave_from',
+            'To Date': 'leave_to', 'Apply Status': 'leave_status',
+        })
+    else:
+        # Generic format
+        df.columns = [c.lower().replace(' ', '_') for c in df.columns]
+        required = {'leave_from', 'leave_to', 'leave_type'}
+        if not ({'email'} & set(df.columns)) and not ({'emp_code'} & set(df.columns)):
+            flash('File must have either "Email" or "emp_code" column.')
+            return redirect(url_for('reconciliation.dashboard'))
 
     batch_id = str(uuid.uuid4())
     count = 0
 
+    # Build email -> emp_code mapping from users table
+    from app.models.user import User
+    email_to_emp = {}
+    for u in User.query.filter(User.email != None, User.email != '').all():
+        email_to_emp[u.email.lower().strip()] = u.emp_code
+    # Also map by name for fallback
+    name_to_emp = {}
+    for u in User.query.all():
+        name_to_emp[u.name.lower().strip()] = u.emp_code
+
     for _, row in df.iterrows():
         try:
-            emp_code = str(row['emp_code']).strip()
-            leave_from = pd.to_datetime(row['leave_from']).date()
-            leave_to = pd.to_datetime(row['leave_to']).date()
+            # Resolve emp_code from email or direct emp_code
+            email = str(row.get('email', '')).strip().lower() if 'email' in df.columns else ''
+            emp_code = ''
+            if email and email in email_to_emp:
+                emp_code = email_to_emp[email]
+            elif 'emp_code' in df.columns:
+                emp_code = str(row['emp_code']).strip()
+            elif 'emp_name' in df.columns:
+                name = str(row.get('emp_name', '')).strip().lower()
+                emp_code = name_to_emp.get(name, '')
+
+            if not emp_code:
+                emp_code = email.split('@')[0] if email else 'unknown'
+
+            leave_from = pd.to_datetime(row['leave_from'], dayfirst=True).date()
+            leave_to = pd.to_datetime(row['leave_to'], dayfirst=True).date()
             leave_type = str(row.get('leave_type', '')).strip()
             leave_status = str(row.get('leave_status', 'approved')).strip().lower()
             emp_name = str(row.get('emp_name', '')).strip() if 'emp_name' in df.columns else ''
-            days = float(row.get('days', 0)) if 'days' in df.columns else (leave_to - leave_from).days + 1
+            days = (leave_to - leave_from).days + 1
 
             record = EHRMSLeaveRecord(
                 upload_batch_id=batch_id, office_id=office_id,

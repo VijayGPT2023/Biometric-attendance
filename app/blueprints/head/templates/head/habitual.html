@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Habitual Late-comers{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Habitual Late-comer List</h2>
+    <p style="font-size:0.85rem; color:#666; margin-bottom:16px;">
+        Employees with <strong>more than 6 anomaly days</strong> for <strong>3 consecutive months</strong>.
+    </p>
+    {% if habitual %}
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Employee</th>
+                <th>Department</th>
+                <th>Month 1</th>
+                <th>Month 2</th>
+                <th>Month 3</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in habitual %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ h.emp_name }}</strong><br><span style="font-size:0.75rem; color:#888;">{{ h.emp_code }}</span></td>
+                <td>{{ h.department }}</td>
+                {% for i in range(3) %}
+                <td class="center" style="color:#c62828; font-weight:700;">
+                    {{ h.counts[i] }} anomalies<br>
+                    <span style="font-size:0.72rem; color:#888;">{{ h.months[i][0] }}-{{ '%02d'|format(h.months[i][1]) }}</span>
+                </td>
+                {% endfor %}
+                <td class="center"><span class="badge badge-declined" style="font-size:0.8rem; padding:4px 10px;">HABITUAL</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:40px; color:#2e7d32;">
+        <div style="font-size:2rem;">&#9989;</div>
+        <p style="margin-top:8px;">No habitual late-comers found. All employees are within acceptable limits.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

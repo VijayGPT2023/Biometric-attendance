@@ -36,6 +36,8 @@ class Justification(TimestampMixin, db.Model):
     admin_remark = db.Column(db.Text, default='')
     admin_reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     admin_reviewed_at = db.Column(db.DateTime, nullable=True)
+    query_count = db.Column(db.Integer, default=0)  # Max 2 queries allowed
+    employee_reply = db.Column(db.Text, default='')  # Reply to head's query
     finalized = db.Column(db.Boolean, default=False)
     final_decision = db.Column(db.String(20), default='')
 

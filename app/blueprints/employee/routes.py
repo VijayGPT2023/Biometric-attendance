@@ -74,6 +74,8 @@ def report(session_uuid):
     just_map = {j.anomaly_date.isoformat(): {
         'id': j.id, 'justification': j.justification, 'status': j.status,
         'head_remark': j.head_remark,
+        'query_count': j.query_count or 0,
+        'employee_reply': j.employee_reply or '',
     } for j in justs}
 
     upload_session = UploadSession.query.filter_by(session_uuid=session_uuid).first()
@@ -106,8 +108,12 @@ def justify(session_uuid):
                     db.func.cast(Justification.anomaly_date, db.String) == anomaly_date
                 ).first()
                 if j and j.status in ('pending', 'query'):
-                    j.justification = value
-                    j.status = 'submitted'
+                    if j.status == 'query':
+                        j.employee_reply = value
+                        j.status = 'resubmitted'
+                    else:
+                        j.justification = value
+                        j.status = 'submitted'
                     j.updated_at = datetime.utcnow()
                     count += 1
 
