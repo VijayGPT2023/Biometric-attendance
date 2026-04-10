@@ -22,6 +22,23 @@ with app.app_context():
         db.create_all()
         logger.info("Database tables ready.")
 
+        # Migrate: add missing columns to existing tables
+        for table, col, typedef in [
+            ('justifications', 'query_count', 'INTEGER DEFAULT 0'),
+            ('justifications', 'employee_reply', "TEXT DEFAULT ''"),
+        ]:
+            try:
+                db.session.execute(sqlalchemy.text(f"SELECT {col} FROM {table} LIMIT 1"))
+            except Exception:
+                db.session.rollback()
+                try:
+                    db.session.execute(sqlalchemy.text(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}"))
+                    db.session.commit()
+                    logger.info(f"Added column {table}.{col}")
+                except Exception as e2:
+                    db.session.rollback()
+                    logger.warning(f"Could not add {table}.{col}: {e2}")
+
         from app.models.user import User
         if not User.query.filter_by(username='admin').first():
             logger.info("Seeding...")
