@@ -127,6 +127,20 @@
             {% endif %}
         </div>
 
+        {% if all_sessions is defined and all_sessions|length > 1 %}
+        <div style="margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+            <label style="font-weight:600; font-size:0.85rem; color:#555;">Select Period:</label>
+            <select onchange="window.location='/head/?session='+this.value+'{% if active_dept %}&dept={{ active_dept }}{% endif %}'"
+                    style="padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.85rem;">
+                {% for s in all_sessions %}
+                <option value="{{ s.session_uuid }}" {% if selected_session == s.session_uuid %}selected{% endif %}>
+                    {{ s.start_date }} to {{ s.end_date }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
         {% if pick_dept is defined and pick_dept %}
         <div class="info-bar">
             <div class="left">

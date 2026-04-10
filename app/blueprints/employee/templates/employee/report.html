@@ -183,12 +183,20 @@
                                     <textarea name="justification_{{ date_str }}"
                                               placeholder="Type your reply to Head's query..." style="margin-top:6px;"></textarea>
                                 {% elif j.get('status') == 'resubmitted' %}
-                                    <em style="color:#1976d2; font-size:0.82rem;">{{ j.get('justification', '') }}</em>
+                                    <div style="font-size:0.82rem; margin-bottom:4px;">
+                                        <strong>Your justification:</strong> {{ j.get('justification', '') }}
+                                    </div>
+                                    {% if j.get('head_remark') %}
+                                    <div class="head-remark">
+                                        <strong>Head's Query ({{ j.get('query_count', 1) }}/2):</strong> {{ j.get('head_remark', '') }}
+                                    </div>
+                                    {% endif %}
                                     {% if j.get('employee_reply') %}
                                     <div style="background:#e3f2fd; padding:4px 8px; border-radius:4px; font-size:0.8rem; margin-top:4px;">
                                         <strong>Your Reply:</strong> {{ j.get('employee_reply', '') }}
                                     </div>
                                     {% endif %}
+                                    <div style="font-size:0.75rem; color:#1976d2; margin-top:4px;">Awaiting Head's review</div>
                                 {% elif j.get('status') == 'submitted' %}
                                     <em style="color:#1976d2; font-size:0.82rem;">{{ j.get('justification', '') }}</em>
                                 {% elif j.get('status') in ('accepted', 'declined') %}

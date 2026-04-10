@@ -41,15 +41,24 @@ def dashboard():
     if active_dept and active_dept not in managed_depts:
         active_dept = ''
 
-    latest = UploadSession.query.order_by(UploadSession.created_at.desc()).first()
+    # Session selector: allow GH to pick which period
+    all_sessions = UploadSession.query.order_by(UploadSession.created_at.desc()).all()
+    selected_session_uuid = request.args.get('session', '')
+    selected = None
+    if selected_session_uuid:
+        selected = UploadSession.query.filter_by(session_uuid=selected_session_uuid).first()
+    if not selected and all_sessions:
+        selected = all_sessions[0]
+
     empty_ctx = dict(managed_depts=managed_depts, dept_groups={},
                      session_uuid=None, start_date=None, end_date=None,
-                     params=None, just_summary={}, active_dept=active_dept)
+                     params=None, just_summary={}, active_dept=active_dept,
+                     all_sessions=all_sessions, selected_session=selected_session_uuid)
 
-    if not latest:
+    if not selected:
         return render_template('head/dashboard.html', **empty_ctx)
 
-    data_path = os.path.join(current_app.config['DATA_FOLDER'], f"{latest.session_uuid}.json")
+    data_path = os.path.join(current_app.config['DATA_FOLDER'], f"{selected.session_uuid}.json")
     if not os.path.exists(data_path):
         return render_template('head/dashboard.html', **empty_ctx)
 
@@ -65,10 +74,12 @@ def dashboard():
         else:
             return render_template('head/dashboard.html',
                                    managed_depts=managed_depts, dept_groups={},
-                                   session_uuid=latest.session_uuid,
+                                   session_uuid=selected.session_uuid,
                                    start_date=start_date, end_date=end_date,
                                    params=params, just_summary={},
-                                   active_dept=active_dept, pick_dept=True)
+                                   active_dept=active_dept, pick_dept=True,
+                                   all_sessions=all_sessions,
+                                   selected_session=selected.session_uuid)
 
     dept_results = [r for r in results if r['department'] in show_depts]
     dept_groups = group_by_department(dept_results)
@@ -78,7 +89,7 @@ def dashboard():
     just_summary = {}
     if emp_codes:
         justs = Justification.query.filter(
-            Justification.session_uuid == latest.session_uuid,
+            Justification.session_uuid == selected.session_uuid,
             Justification.emp_code.in_(emp_codes)
         ).all()
         for j in justs:
@@ -93,10 +104,12 @@ def dashboard():
 
     return render_template('head/dashboard.html',
                            managed_depts=managed_depts, dept_groups=dept_groups,
-                           session_uuid=latest.session_uuid,
+                           session_uuid=selected.session_uuid,
                            start_date=start_date, end_date=end_date,
                            params=params, just_summary=just_summary,
-                           active_dept=active_dept)
+                           active_dept=active_dept,
+                           all_sessions=all_sessions,
+                           selected_session=selected.session_uuid)
 
 
 @head_bp.route('/employee/<session_uuid>/<emp_code>')

@@ -111,6 +111,29 @@ def upload():
     # Merge multi-month data
     employees, start_date, end_date = merge_multi_month(file_results)
 
+    # Check for duplicate session (same office + overlapping period)
+    confirm_replace = request.form.get('confirm_replace', '')
+    existing_session = UploadSession.query.filter_by(
+        office_id=office_id, start_date=start_date, end_date=end_date
+    ).first()
+    if existing_session and not confirm_replace:
+        flash(f'A session for this period ({start_date} to {end_date}) already exists for this office. '
+              f'Upload again and check "Replace existing" to update it.')
+        return redirect(url_for('admin.dashboard'))
+
+    # If replacing, delete old session data
+    if existing_session and confirm_replace:
+        Justification.query.filter_by(session_id=existing_session.id).delete()
+        db.session.delete(existing_session)
+        db.session.commit()
+        # Also remove old JSON file
+        old_path = os.path.join(data_dir, f"{existing_session.session_uuid}.json")
+        try:
+            os.remove(old_path)
+        except OSError:
+            pass
+        flash('Previous session data replaced.')
+
     params = {
         'late_time': f"{late_h:02d}:{late_m:02d}",
         'early_time': f"{early_h:02d}:{early_m:02d}",
