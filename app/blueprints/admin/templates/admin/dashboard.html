@@ -1,193 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Biometric Attendance</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .navbar h1 { font-size: 1.2rem; }
-        .navbar .nav-links a {
-            color: rgba(255,255,255,0.85); text-decoration: none; margin-left: 18px; font-size: 0.88rem;
-            padding: 6px 12px; border-radius: 5px; transition: background 0.2s;
-        }
-        .navbar .nav-links a:hover { background: rgba(255,255,255,0.2); }
-        .navbar .user-info { font-size: 0.85rem; opacity: 0.9; }
-        .container { max-width: 1100px; margin: 24px auto; padding: 0 20px; }
-        .card {
-            background: #fff; border-radius: 12px; padding: 24px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 24px;
-        }
-        .card h2 { font-size: 1.1rem; color: #333; margin-bottom: 16px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
-        .flash {
-            background: #d4edda; color: #155724; border: 1px solid #c3e6cb;
-            padding: 12px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem;
-        }
-        .flash-warn { background: #fff3cd; color: #856404; border-color: #ffc107; }
-        .form-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-        .form-row .form-group { flex: 1; min-width: 160px; }
-        label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.82rem; }
-        input[type="file"], input[type="time"], input[type="number"] {
-            width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;
-        }
-        input:focus { outline: none; border-color: #667eea; }
-        .btn {
-            padding: 10px 22px; border: none; border-radius: 6px; font-size: 0.9rem;
-            cursor: pointer; font-weight: 600; transition: transform 0.1s;
-        }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
-        .btn-sm { padding: 5px 14px; font-size: 0.8rem; border-radius: 5px; }
-        .btn-blue { background: #667eea; color: #fff; }
-        .btn-green { background: #43a047; color: #fff; }
-        .btn-orange { background: #f57c00; color: #fff; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
-        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
-        tr:hover td { background: #f8f8ff; }
-        .badge {
-            display: inline-block; padding: 2px 8px; border-radius: 10px;
-            font-size: 0.72rem; font-weight: 600; color: #fff;
-        }
-        .badge-admin { background: #c62828; }
-        .badge-head { background: #f57c00; }
-        .badge-employee { background: #43a047; }
-        .stats-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-        .stat-card {
-            flex: 1; min-width: 140px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff; padding: 16px; border-radius: 10px; text-align: center;
-        }
-        .stat-card .number { font-size: 1.8rem; font-weight: 700; }
-        .stat-card .label { font-size: 0.8rem; opacity: 0.9; margin-top: 4px; }
-    </style>
-</head>
-<body>
-    <div class="navbar">
-        <div>
-            <h1>Biometric Attendance - Admin</h1>
-            <span class="user-info">Welcome, {{ current_user.name }}</span>
-        </div>
-        <div class="nav-links">
-            <a href="/admin/">Dashboard</a>
-            <a href="/admin/users">Manage Users</a>
-            <a href="/change-password">Password</a>
-            <a href="/logout">Logout</a>
-        </div>
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - NPC Biometric{% endblock %}
+
+{% block content %}
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="number">{{ sessions|length }}</div>
+        <div class="label">Upload Sessions</div>
     </div>
+    <div class="stat-card green">
+        <div class="number">{{ users|length }}</div>
+        <div class="label">Registered Users</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="number">{{ departments|length }}</div>
+        <div class="label">Departments</div>
+    </div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#6a1b9a,#8e24aa);">
+        <div class="number">{{ offices|length }}</div>
+        <div class="label">Offices</div>
+    </div>
+</div>
 
-    <div class="container">
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        {% for msg in messages %}
-        <div class="flash">{{ msg }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="number">{{ sessions|length }}</div>
-                <div class="label">Upload Sessions</div>
+<!-- Upload Card -->
+<div class="card">
+    <h2>Upload Biometric Data</h2>
+    <form action="{{ url_for('attendance.upload') }}" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row">
+            <div class="form-group" style="flex:2;">
+                <label>Attendance File(s) (.xls / .xlsx)</label>
+                <input type="file" name="files" accept=".xls,.xlsx" multiple required>
             </div>
-            <div class="stat-card" style="background: linear-gradient(135deg, #43a047, #2e7d32);">
-                <div class="number">{{ users|length }}</div>
-                <div class="label">Registered Users</div>
-            </div>
-            <div class="stat-card" style="background: linear-gradient(135deg, #f57c00, #e65100);">
-                <div class="number">{{ departments|length }}</div>
-                <div class="label">Departments</div>
-            </div>
-        </div>
-
-        <!-- Upload Card -->
-        <div class="card">
-            <h2>Upload Biometric Data</h2>
-            <form action="/attendance/upload" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="form-row" style="margin-bottom: 14px;">
-                    <div class="form-group" style="flex:2;">
-                        <label>Attendance File(s) (.xls / .xlsx)</label>
-                        <input type="file" name="files" accept=".xls,.xlsx" multiple required>
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Office</label>
-                        <select name="office_id" required style="width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.9rem;">
-                            <option value="">-- Select Office --</option>
-                            {% for o in offices %}
-                            <option value="{{ o.id }}">{{ o.name }} ({{ o.code }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Late After</label>
-                        <input type="time" name="late_time" value="10:00" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Early Before</label>
-                        <input type="time" name="early_time" value="17:00" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Min Hours</label>
-                        <input type="number" name="min_hours" value="8" min="1" max="12" step="0.5" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Allowed Anomalies</label>
-                        <input type="number" name="allowed_anomalies" value="2" min="0" max="10" required>
-                    </div>
-                </div>
-                <div style="margin-bottom:10px;">
-                    <label style="font-weight:normal; font-size:0.82rem; cursor:pointer;">
-                        <input type="checkbox" name="confirm_replace" value="1">
-                        Replace existing session if same period already uploaded
-                    </label>
-                </div>
-                <button type="submit" class="btn btn-primary">Upload &amp; Analyze</button>
-            </form>
-        </div>
-
-        <!-- Sessions List -->
-        <div class="card">
-            <h2>Analysis Sessions</h2>
-            {% if sessions %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Period</th>
-                        <th>Uploaded On</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in sessions %}
-                    <tr>
-                        <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
-                        <td>{{ s.created_at.strftime("%d-%b %H:%M") if s.created_at else "" }}</td>
-                        <td><span class="badge badge-employee">{{ s.status }}</span></td>
-                        <td>
-                            <a href="/admin/report/{{ s.session_uuid }}" class="btn btn-sm btn-blue">View Report</a>
-                            <a href="/admin/review/{{ s.session_uuid }}" class="btn btn-sm btn-orange">Review &amp; Finalize</a>
-                            <form action="/admin/sessions/{{ s.session_uuid }}/delete" method="post" style="display:inline;"
-                                  onsubmit="return confirm('Delete this session? All justifications will be lost.')">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm" style="background:#c62828; color:#fff;">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
+            <div class="form-group" style="flex:1;">
+                <label>Office</label>
+                <select name="office_id" required>
+                    <option value="">-- Select Office --</option>
+                    {% for o in offices %}
+                    <option value="{{ o.id }}">{{ o.name }} ({{ o.code }})</option>
                     {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p style="color: #888; padding: 16px 0;">No sessions yet. Upload a biometric file to get started.</p>
-            {% endif %}
+                </select>
+            </div>
         </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Late After</label>
+                <input type="time" name="late_time" value="10:00" required>
+            </div>
+            <div class="form-group">
+                <label>Early Before</label>
+                <input type="time" name="early_time" value="17:00" required>
+            </div>
+            <div class="form-group">
+                <label>Min Hours</label>
+                <input type="number" name="min_hours" value="8" min="1" max="12" step="0.5" required>
+            </div>
+            <div class="form-group">
+                <label>Allowed Anomalies</label>
+                <input type="number" name="allowed_anomalies" value="2" min="0" max="10" required>
+            </div>
+        </div>
+        <div style="margin-bottom:10px;">
+            <label style="font-weight:normal; font-size:0.82rem; cursor:pointer;">
+                <input type="checkbox" name="confirm_replace" value="1">
+                Replace existing session if same period already uploaded
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload &amp; Analyze</button>
+    </form>
+</div>
+
+<!-- Sessions -->
+<div class="card">
+    <h2>Analysis Sessions</h2>
+    {% if sessions %}
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th class="center">Employees</th>
+                <th class="center">Anomalies</th>
+                <th>Uploaded</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sessions %}
+            <tr>
+                <td><strong>{{ s.start_date }}</strong> to <strong>{{ s.end_date }}</strong></td>
+                <td class="center">{{ s.employee_count }}</td>
+                <td class="center">{{ s.anomaly_count }}</td>
+                <td>{{ s.created_at.strftime('%d-%b %H:%M') if s.created_at else '' }}</td>
+                <td><span class="badge badge-accepted">{{ s.status }}</span></td>
+                <td>
+                    <a href="{{ url_for('reports.view_report', session_uuid=s.session_uuid) }}" class="btn btn-sm btn-info">Report</a>
+                    <a href="{{ url_for('admin.review', session_uuid=s.session_uuid) }}" class="btn btn-sm btn-warning">Review</a>
+                    <a href="{{ url_for('reports.export_excel', session_uuid=s.session_uuid) }}" class="btn btn-sm btn-success">Excel</a>
+                    <form action="{{ url_for('admin.delete_session', session_uuid=s.session_uuid) }}" method="post" style="display:inline;"
+                          onsubmit="return confirm('Delete this session and all its data?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     </div>
-</body>
-</html>
+    {% else %}
+    <p class="text-muted" style="padding:16px 0;">No sessions yet. Upload a biometric file to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}
